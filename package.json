@@ -1,0 +1,42 @@
+{
+  "name": "wallet-middleware-service",
+  "version": "1.0.0",
+  "description": "A middleware service for generating and managing cryptocurrency wallets.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js --watch",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@cosmjs/crypto": "^0.36.0",
+    "@cosmjs/stargate": "^0.36.0",
+    "@emurgo/cardano-serialization-lib-nodejs": "^15.0.0",
+    "@polkadot/keyring": "^13.5.5",
+    "@polkadot/util-crypto": "^13.5.5",
+    "@solana/web3.js": "^1.98.4",
+    "@taquito/signer": "^22.0.0",
+    "@taquito/taquito": "^22.0.0",
+    "@ton/core": "^0.61.0",
+    "@ton/crypto": "^3.3.0",
+    "@ton/ton": "^15.3.1",
+    "algosdk": "^3.4.0",
+    "bip32": "^5.0.0-rc.0",
+    "bip39": "^3.1.0",
+    "bitcoinjs-lib": "^6.1.7",
+    "buffer": "^6.0.3",
+    "cors": "^2.8.5",
+    "ethers": "^6.15.0",
+    "express": "^5.1.0",
+    "jest": "^27.0.0",
+    "stellar-hd-wallet": "^1.0.2",
+    "stellar-sdk": "^13.3.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "tiny-secp256k1": "^2.2.4"
+  },
+  "devDependencies": {
+    "jest": "^27.0.0"
+  },
+  "author": "Edidiong Samuel",
+  "license": "MIT"
+}
