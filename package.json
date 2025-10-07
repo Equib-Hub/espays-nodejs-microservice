@@ -4,7 +4,8 @@
   "description": "A middleware service for generating and managing cryptocurrency wallets.",
   "main": "src/app.js",
   "scripts": {
-    "start": "node src/app.js --watch",
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
     "test": "jest"
   },
   "dependencies": {
