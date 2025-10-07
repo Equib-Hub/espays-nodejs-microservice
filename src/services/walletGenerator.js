@@ -1,5 +1,5 @@
 const bip39 = require('bip39');
-const ecc = require('tiny-secp256k1');
+const ecc = require('noble-secp256k1');
 const bip32 = require('bip32');
 const solanaWeb3 = require('@solana/web3.js');
 const { TonClient, WalletContractV4, internal } = require('@ton/ton');
@@ -20,6 +20,10 @@ function getBitcoinLib() {
   }
   return bitcoinLib;
 }
+
+// Initialize bitcoinjs-lib with noble-secp256k1 (pure JS, no WASM)
+const bitcoin = require('bitcoinjs-lib');
+bitcoin.initEccLib(ecc);
 
 async function generateWallet(mnemonic) {
   const seed = await bip39.mnemonicToSeed(mnemonic);
@@ -44,7 +48,6 @@ async function generateWallet(mnemonic) {
   const ethAddress = ethWallet.address;
 
   // Bitcoin Wallet
-  const bitcoin = getBitcoinLib();
   const root = bip32.BIP32Factory(ecc).fromSeed(seed);
   const btcNode = root.derivePath("m/84'/0'/0'/0/0");
   const btcPrivateKey = btcNode.toWIF();

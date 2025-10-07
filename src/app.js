@@ -1,8 +1,13 @@
+// Load env file FIRST (before any other requires)
+require('dotenv').config({ path: process.env.NODE_ENV === 'production' ? '.env.prod' : '.env' });
+
 const express = require('express');
 const cors = require('cors');
-const walletRoutes = require('./routes/wallet');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+
+// Require routes AFTER env loaded
+const walletRoutes = require('./routes/wallet');
 
 const app = express();
 app.use(cors());
