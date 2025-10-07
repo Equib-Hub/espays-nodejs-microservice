@@ -21,17 +21,10 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: yarn i
 
     - name: Run tests
       run: npm test
-
-    - name: Create production build
-      run: |
-        # Copy production environment file
-        cp .env.example .env
-        # Install only production dependencies
-        npm ci --only=production
 
     - name: Deploy to cPanel via FTP
       uses: SamKirkland/FTP-Deploy-Action@4.3.3
