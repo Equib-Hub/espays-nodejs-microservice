@@ -33,7 +33,6 @@ jobs:
         exclude: |
           **/.git*
           **/.git*/**
-          **/node_modules/**
           **/tests/**
           **/.env.example
           **/README.md
