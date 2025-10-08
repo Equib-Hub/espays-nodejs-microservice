@@ -1,6 +1,6 @@
 const bip39 = require('bip39');
 const { ethers } = require('ethers');
-const ecc = require('noble-secp256k1');
+const ecc = require('tiny-secp256k1');
 const bip32 = require('bip32');
 const bitcoin = require('bitcoinjs-lib');
 const solanaWeb3 = require('@solana/web3.js');

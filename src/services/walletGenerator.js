@@ -1,6 +1,7 @@
 const bip39 = require('bip39');
-const ecc = require('noble-secp256k1');
+const ecc = require('tiny-secp256k1');
 const bip32 = require('bip32');
+const bitcoin = require('bitcoinjs-lib');
 const solanaWeb3 = require('@solana/web3.js');
 const { TonClient, WalletContractV4, internal } = require('@ton/ton');
 const { mnemonicNew, mnemonicToPrivateKey } = require('@ton/crypto');
@@ -9,21 +10,6 @@ const { Keyring } = require('@polkadot/keyring');
 const { InMemorySigner } = require('@taquito/signer');
 const algosdk = require('algosdk');
 const StellarHDWallet = require('stellar-hd-wallet');
-
-let bitcoinLib; // defer load
-
-function getBitcoinLib() {
-  if (!bitcoinLib) {
-    // Ensure fallback (env may already be set; keep here as safety)
-    process.env.TINY_SECP256K1_FORCE_FALLBACK = process.env.TINY_SECP256K1_FORCE_FALLBACK || '1';
-    bitcoinLib = require('bitcoinjs-lib');
-  }
-  return bitcoinLib;
-}
-
-// Initialize bitcoinjs-lib with noble-secp256k1 (pure JS, no WASM)
-const bitcoin = require('bitcoinjs-lib');
-bitcoin.initEccLib(ecc);
 
 async function generateWallet(mnemonic) {
   const seed = await bip39.mnemonicToSeed(mnemonic);
