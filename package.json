@@ -30,6 +30,7 @@
     "ethers": "^6.15.0",
     "express": "^5.1.0",
     "jest": "^27.0.0",
+    "pg": "^8.16.3",
     "stellar-hd-wallet": "^1.0.2",
     "stellar-sdk": "^13.3.0",
     "swagger-jsdoc": "^6.2.8",

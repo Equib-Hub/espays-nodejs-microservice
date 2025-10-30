@@ -1,4 +1,5 @@
 const { ethers } = require("ethers");
+const { addressExists } = require("../utils/helpers");
 
 // ERC20 Transfer event signature
 const TRANSFER_EVENT_SIGNATURE = "Transfer(address,address,uint256)";
@@ -130,6 +131,15 @@ async function monitorTokenTransfers(params) {
               const toAddress = ethers.getAddress(
                 "0x" + log.topics[2].slice(26)
               );
+
+              const isRegisteredUser = await addressExists([
+                fromAddress,
+                toAddress,
+              ]);
+              if (!isRegisteredUser) {
+                continue;
+              }
+
               const amount = BigInt(log.data).toString();
 
               transferEvents.push({

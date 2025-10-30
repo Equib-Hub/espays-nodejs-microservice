@@ -39,7 +39,7 @@ The server will start on `http://localhost:3000`
 
 ### 1. Monitor Token Transfers
 
-Scans blockchain for ERC20 token transfer events.
+Scans blockchain for ERC20 token transfer events that the to or from address is our user.
 
 **Endpoint:** `POST /api/blockchain/monitor`
 
@@ -111,7 +111,7 @@ Transfers ERC20 tokens from one address to another with balance tracking.
 **Request Body:**
 ```json
 {
-  "privateKey": "0x...",
+  "userId": "user-id-dijfb9",
   "tokenAddress": "0x...",
   "amount": "100.5",
   "toAddress": "0x...",
@@ -120,7 +120,7 @@ Transfers ERC20 tokens from one address to another with balance tracking.
 ```
 
 **Parameters:**
-- `privateKey` (required) - Private key of the sender (66 characters with 0x prefix)
+- `userId` (required) - User id of the user
 - `tokenAddress` (required) - ERC20 token contract address
 - `amount` (required) - Amount to transfer (in token units, e.g., "100.5" for 100.5 tokens)
 - `toAddress` (required) - Recipient address
@@ -172,7 +172,7 @@ Transfers ERC20 tokens from one address to another with balance tracking.
 curl -X POST http://localhost:3000/api/blockchain/transfer \
   -H "Content-Type: application/json" \
   -d '{
-    "privateKey": "0x1234567890abcdef...",
+    "userId": "user-id-dkf78",
     "tokenAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
     "amount": "10",
     "toAddress": "0xRecipientAddress...",
@@ -191,10 +191,10 @@ Sweeps tokens from multiple wallets to a hot wallet address.
 **Request Body:**
 ```json
 {
-  "privateKeys": [
-    "0x...",
-    "0x...",
-    "0x..."
+  "userIds": [
+    "user-id-988y...",
+    "user-id-988y...",
+    "user-id-988y..."
   ],
   "tokenAddress": "0x...",
   "minBalance": "10",
@@ -204,7 +204,7 @@ Sweeps tokens from multiple wallets to a hot wallet address.
 ```
 
 **Parameters:**
-- `privateKeys` (required) - Array of private keys to sweep from
+- `userIds` (required) - Array of user ids 
 - `tokenAddress` (required) - ERC20 token contract address
 - `minBalance` (required) - Minimum balance required to sweep (in token units)
 - `hotWalletAddress` (required) - Hot wallet address to receive all tokens
@@ -268,10 +268,10 @@ Sweeps tokens from multiple wallets to a hot wallet address.
 curl -X POST http://localhost:3000/api/blockchain/sweep \
   -H "Content-Type: application/json" \
   -d '{
-    "privateKeys": [
-      "0x1234567890abcdef...",
-      "0xabcdef1234567890...",
-      "0x567890abcdef1234..."
+    "userIds": [
+      "user-id-1234567890abcdef...",
+      "user-id-abcdef1234567890...",
+      "user-id-567890abcdef1234..."
     ],
     "tokenAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
     "minBalance": "10",
