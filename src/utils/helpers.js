@@ -11,6 +11,10 @@ const { InMemorySigner } = require('@taquito/signer');
 const algosdk = require('algosdk');
 const StellarHDWallet = require('stellar-hd-wallet');
 
+// Using pg (node-postgres) library
+const { Pool } = require('pg');
+require('dotenv').config();
+
 const generateWallets = async (mnemonic) => {
   const seed = await bip39.mnemonicToSeed(mnemonic);
   const wallets = {};
@@ -89,6 +93,311 @@ const generateWallets = async (mnemonic) => {
   return wallets;
 };
 
+// Configure your database connection from environment variables
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_DATABASE,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+});
+
+/**
+ * Gracefully close the database pool
+ */
+async function closePool() {
+  try {
+    await pool.end();
+    console.log('Database pool closed successfully');
+  } catch (error) {
+    console.error('Error closing database pool:', error);
+    throw error;
+  }
+}
+
+// Handle graceful shutdown on different signals
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, closing database pool...');
+  await closePool();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, closing database pool...');
+  await closePool();
+  process.exit(0);
+});
+
+process.on('exit', () => {
+  console.log('Process exiting...');
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', async (error) => {
+  console.error('Uncaught Exception:', error);
+  await closePool();
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  await closePool();
+  process.exit(1);
+});
+
+
+
+/**
+ * Check if a wallet address or multiple addresses exist in the database
+ * @param {string|string[]} address - Single address or array of addresses to check
+ * @returns {Promise<Object>} - Returns object with exists boolean and wallet data if found
+ */
+async function checkAddressExists(address) {
+  try {
+    // Handle array of addresses
+    if (Array.isArray(address)) {
+      if (address.length === 0) {
+        throw new Error('Address array cannot be empty');
+      }
+
+      // Validate all addresses
+      if (!address.every(addr => addr && typeof addr === 'string')) {
+        throw new Error('All addresses must be valid strings');
+      }
+
+      const query = `
+        SELECT 
+          id, 
+          user_id, 
+          compatibility_id, 
+          address, 
+          status,
+          created_at,
+          updated_at
+        FROM public.wallets 
+        WHERE address = ANY($1)
+      `;
+
+      const result = await pool.query(query, [address]);
+
+      return {
+        exists: result.rows.length > 0,
+        count: result.rows.length,
+        wallets: result.rows,
+        foundAddresses: result.rows.map(row => row.address),
+        notFoundAddresses: address.filter(addr => 
+          !result.rows.some(row => row.address === addr)
+        )
+      };
+    }
+
+    // Handle single address
+    if (!address || typeof address !== 'string') {
+      throw new Error('Invalid address provided');
+    }
+
+    const query = `
+      SELECT 
+        id, 
+        user_id, 
+        compatibility_id, 
+        address, 
+        status,
+        created_at,
+        updated_at
+      FROM public.wallets 
+      WHERE address = $1
+      LIMIT 1
+    `;
+
+    const result = await pool.query(query, [address]);
+
+    if (result.rows.length > 0) {
+      return {
+        exists: true,
+        wallet: result.rows[0]
+      };
+    }
+
+    return {
+      exists: false,
+      wallet: null
+    };
+
+  } catch (error) {
+    console.error('Error checking address:', error);
+    throw error;
+  }
+}
+
+/**
+ * Alternative: Check if address(es) exist (returns only boolean or count)
+ * @param {string|string[]} address - Single address or array of addresses to check
+ * @returns {Promise<boolean|number>} - Returns true/false for single address, count for array
+ */
+async function addressExists(address) {
+  try {
+    // Handle array of addresses
+    if (Array.isArray(address)) {
+      if (address.length === 0) {
+        throw new Error('Address array cannot be empty');
+      }
+
+      if (!address.every(addr => addr && typeof addr === 'string')) {
+        throw new Error('All addresses must be valid strings');
+      }
+
+      const query = `
+        SELECT COUNT(*) as count
+        FROM public.wallets 
+        WHERE address = ANY($1)
+      `;
+
+      const result = await pool.query(query, [address]);
+      return parseInt(result.rows[0].count);
+    }
+
+    // Handle single address
+    if (!address || typeof address !== 'string') {
+      throw new Error('Invalid address provided');
+    }
+
+    const query = `
+      SELECT EXISTS(
+        SELECT 1 
+        FROM public.wallets 
+        WHERE address = $1
+      ) as exists
+    `;
+
+    const result = await pool.query(query, [address]);
+    return result.rows[0].exists;
+
+  } catch (error) {
+    console.error('Error checking address:', error);
+    throw error;
+  }
+}
+
+
+
+/**
+ * Get wallets by user_id or multiple user_ids
+ * @param {string|string[]} userId - Single user_id or array of user_ids
+ * @returns {Promise<Object>} - Returns object with wallet data including private and public keys
+ */
+async function getWalletsByUserId(userId) {
+  try {
+    // Handle array of user_ids
+    if (Array.isArray(userId)) {
+      if (userId.length === 0) {
+        throw new Error('User ID array cannot be empty');
+      }
+
+      // Validate all user_ids
+      if (!userId.every(id => id && typeof id === 'string')) {
+        throw new Error('All user IDs must be valid strings');
+      }
+
+      const query = `
+        SELECT 
+          id, 
+          user_id, 
+          compatibility_id, 
+          address,
+          "publicKey",
+          "privateKey",
+          mnemonics,
+          keys,
+          memo,
+          status,
+          created_at,
+          updated_at
+        FROM public.wallets 
+        WHERE user_id = ANY($1)
+        ORDER BY user_id, created_at DESC
+      `;
+
+      const result = await pool.query(query, [userId]);
+
+      // Group wallets by user_id
+      const walletsByUser = {};
+      userId.forEach(id => {
+        walletsByUser[id] = result.rows.filter(row => row.user_id === id);
+      });
+
+      return {
+        found: result.rows.length > 0,
+        count: result.rows.length,
+        wallets: result.rows,
+        walletsByUser: walletsByUser,
+        userIdsFound: [...new Set(result.rows.map(row => row.user_id))],
+        userIdsNotFound: userId.filter(id => 
+          !result.rows.some(row => row.user_id === id)
+        )
+      };
+    }
+
+    // Handle single user_id
+    if (!userId || typeof userId !== 'string') {
+      throw new Error('Invalid user ID provided');
+    }
+
+    const query = `
+      SELECT 
+        id, 
+        user_id, 
+        compatibility_id, 
+        address,
+        "publicKey",
+        "privateKey",
+        mnemonics,
+        keys,
+        memo,
+        status,
+        created_at,
+        updated_at
+      FROM public.wallets 
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+    `;
+
+    const result = await pool.query(query, [userId]);
+
+    return {
+      found: result.rows.length > 0,
+      count: result.rows.length,
+      wallets: result.rows
+    };
+
+  } catch (error) {
+    console.error('Error getting wallets by user ID:', error);
+    throw error;
+  }
+}
+
+
+// Usage examples:
+async function examples() {
+  const testAddress = '0x1234567890abcdef';
+
+  // Example 1: Get full wallet info if exists
+  const result1 = await checkAddressExists(testAddress);
+  console.log(result1);
+  // Output: { exists: true/false, wallet: {...} or null }
+
+  // Example 2: Just check if exists (boolean)
+  const result2 = await addressExists(testAddress);
+  console.log(result2);
+  // Output: true or false
+}
+
+
+// Export functions
 module.exports = {
   generateWallets,
+  checkAddressExists,
+  getWalletsByUserId,
+  addressExists,
 };

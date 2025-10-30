@@ -1,28 +1,35 @@
 // Load env file FIRST (before any other requires)
-require('dotenv').config({ path: process.env.NODE_ENV === 'production' ? '.env.prod' : '.env' });
+require("dotenv").config({
+  path: process.env.NODE_ENV === "production" ? ".env.prod" : ".env",
+});
 
-const express = require('express');
-const cors = require('cors');
-const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
+const express = require("express");
+const cors = require("cors");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+const bigIntSerializer = require('./middleware/bigIntSerializer');
 
 // Require routes AFTER env loaded
-const walletRoutes = require('./routes/wallet');
+const walletRoutes = require("./routes/wallet");
+const blockchainRoutes = require("./routes/blockchain");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+// BigInt serialization middleware - must be before routes
+app.use(bigIntSerializer);
 
-app.use('/api/wallet', walletRoutes);
+app.use("/api/wallet", walletRoutes);
+app.use("/api/blockchain", blockchainRoutes);
 
 // Swagger setup (added for documentation)
 const swaggerOptions = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'Wallet Middleware Service API',
-      version: '1.0.0',
-      description: 'API for generating cryptocurrency wallets',
+      title: "Wallet Middleware Service API",
+      version: "1.0.0",
+      description: "API for generating cryptocurrency wallets",
     },
     servers: [
       {
@@ -30,14 +37,16 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./src/routes/*.js'], // Path to files with JSDoc comments
+  apis: ["./src/routes/*.js"], // Path to files with JSDoc comments
 };
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // End of Swagger setup
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Wallet Middleware Service running at http://localhost:${PORT}`);
+  console.log(
+    `✅ Wallet Middleware Service running at http://localhost:${PORT}`
+  );
   console.log(`📖 API Docs available at http://localhost:${PORT}/api-docs`);
 });
