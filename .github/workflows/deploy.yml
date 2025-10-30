@@ -3,8 +3,6 @@ name: Deploy Node.js Microservices
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'nodejs-microservices/**'  # Adjust path to your Node.js code
 
 jobs:
   deploy:
