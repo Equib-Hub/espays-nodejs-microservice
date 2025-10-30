@@ -26,7 +26,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `https://espays-nodejs-microservice.onrender.com`,
+        url: `https://nodejs.espays.org`,
       },
     ],
   },
