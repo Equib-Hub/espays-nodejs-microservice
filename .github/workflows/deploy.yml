@@ -1,0 +1,64 @@
+name: Deploy Node.js Microservices
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'nodejs-microservices/**'  # Adjust path to your Node.js code
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v0.1.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          echo "=== Starting Node.js Microservices Deployment ==="
+          # Fix Git authentication by using SSH
+          cd /var/www/nodejs.espays.org
+          git remote set-url origin git@github.com:Equib-Hub/espays-nodejs-microservice.git
+          
+          echo "=== Pulling Latest Code ==="
+          # Pull the latest changes
+          git checkout main
+          git pull origin main
+          
+          echo "=== Installing Dependencies ==="
+          # Install/update dependencies
+          npm install --production
+          
+          echo "=== Setting up PM2 ==="
+          # Start/Restart with PM2
+          # Create ecosystem file if it doesn't exist
+          if [ ! -f ecosystem.config.js ]; then
+            cat > ecosystem.config.js << EOF
+          module.exports = {
+            apps: [{
+              name: 'espays-microservices',
+              script: 'app.js',
+              instances: 'max',
+              exec_mode: 'cluster',
+              env: {
+                NODE_ENV: 'production',
+                PORT: 3000
+              }
+            }]
+          };
+          EOF
+          fi
+          
+          # Start or restart the application
+          pm2 delete espays-microservices 2>/dev/null || true
+          pm2 start ecosystem.config.js
+          pm2 save
+          pm2 startup
+          
+          echo "=== Setting Permissions ==="
+          sudo chown -R $USER:$USER /var/www/nodejs.espays.org
+          
+          echo "=== Node.js Deployment Complete ==="
