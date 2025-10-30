@@ -18,28 +18,29 @@ jobs:
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
         script: |
           echo "=== Starting Node.js Microservices Deployment ==="
-          # Fix Git authentication by using SSH
+          
+          # Source nvm or set PATH to include node/npm
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          export PATH=$PATH:/usr/bin:/usr/local/bin
+          
           cd /var/www/nodejs.espays.org
           git remote set-url origin git@github.com:Equib-Hub/espays-nodejs-microservice.git
           
           echo "=== Pulling Latest Code ==="
-          # Pull the latest changes
           git checkout main
           git pull origin main
           
           echo "=== Installing Dependencies ==="
-          # Install/update dependencies
-          npm install --production
+          npm install --production --legacy-peer-deps
           
           echo "=== Setting up PM2 ==="
-          # Start/Restart with PM2
-          # Create ecosystem file if it doesn't exist
           if [ ! -f ecosystem.config.js ]; then
-            cat > ecosystem.config.js << EOF
+            cat > ecosystem.config.js << 'EOF'
           module.exports = {
             apps: [{
               name: 'espays-microservices',
-              script: 'app.js',
+              script: 'src/app.js',
               instances: 'max',
               exec_mode: 'cluster',
               env: {
@@ -51,13 +52,14 @@ jobs:
           EOF
           fi
           
-          # Start or restart the application
+          # Restart the application
           pm2 delete espays-microservices 2>/dev/null || true
           pm2 start ecosystem.config.js
           pm2 save
-          pm2 startup
           
           echo "=== Setting Permissions ==="
           sudo chown -R $USER:$USER /var/www/nodejs.espays.org
           
           echo "=== Node.js Deployment Complete ==="
+          echo "=== PM2 Status ==="
+          pm2 list
