@@ -48,20 +48,24 @@ Scans blockchain for ERC20 token transfer events that the to or from address is 
 {
   "tokenAddress": "0x...",
   "startBlock": 24251141,
-  "numberOfBlocks": 1000,
+  "numberOfBlocks": 100,
   "endBlock": 24253141,
   "rpcUrl": "https://toronet.org/rpc/",
-  "maxNumberOfEvents": 100
+  "maxNumberOfEvents": 100,
+  "webHook": "https://webhook_to_call_with_event.data",
+  "test": false
 }
 ```
 
 **Parameters:**
 - `tokenAddress` (required) - ERC20 token contract address
 - `startBlock` (required) - Block number to start scanning from
-- `numberOfBlocks` (required) - Maximum number of blocks to scan
+- `numberOfBlocks` (optional: default to 100) - Maximum number of blocks to scan
 - `endBlock` (optional) - Block number to stop at (will use latest if not provided)
 - `rpcUrl` (required) - Blockchain RPC URL
 - `maxNumberOfEvents` (required) - Maximum number of transfer events to return
+- `webHook` (optional) - The webHook to call (It pass the event data into this webhook using a post request)
+- `test` (optional) - skips the database check to see if the address involved in the transfer event is a user. Set to true to skip the test
 
 **Response:**
 ```json

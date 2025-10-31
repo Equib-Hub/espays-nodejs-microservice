@@ -1,5 +1,5 @@
-const { monitorTokenTransfers } = require('../services/monitorService');
-
+const { monitorTokenTransfers } = require("../services/monitorService");
+const axios = require("axios");
 /**
  * Monitor token transfers endpoint
  * POST /api/monitor
@@ -14,48 +14,51 @@ const { monitorTokenTransfers } = require('../services/monitorService');
  */
 async function monitor(req, res) {
   try {
-    const {
+    let {
       tokenAddress,
       startBlock,
       numberOfBlocks,
       endBlock,
       rpcUrl,
-      maxNumberOfEvents
+      maxNumberOfEvents,
+      webHook,
+      test,
     } = req.body;
 
+    if (!numberOfBlocks) numberOfBlocks = 100;
     // Validate required fields
     if (!tokenAddress) {
       return res.status(400).json({
         success: false,
-        error: 'tokenAddress is required'
+        error: "tokenAddress is required",
       });
     }
 
     if (!startBlock || isNaN(startBlock)) {
       return res.status(400).json({
         success: false,
-        error: 'startBlock is required and must be a number'
+        error: "startBlock is required and must be a number",
       });
     }
 
     if (!numberOfBlocks || isNaN(numberOfBlocks)) {
       return res.status(400).json({
         success: false,
-        error: 'numberOfBlocks is required and must be a number'
+        error: "numberOfBlocks is required and must be a number",
       });
     }
 
     if (!rpcUrl) {
       return res.status(400).json({
         success: false,
-        error: 'rpcUrl is required'
+        error: "rpcUrl is required",
       });
     }
 
     if (!maxNumberOfEvents || isNaN(maxNumberOfEvents)) {
       return res.status(400).json({
         success: false,
-        error: 'maxNumberOfEvents is required and must be a number'
+        error: "maxNumberOfEvents is required and must be a number",
       });
     }
 
@@ -66,20 +69,25 @@ async function monitor(req, res) {
       numberOfBlocks: parseInt(numberOfBlocks),
       endBlock: endBlock ? parseInt(endBlock) : null,
       rpcUrl,
-      maxNumberOfEvents: parseInt(maxNumberOfEvents)
+      maxNumberOfEvents: parseInt(maxNumberOfEvents),
+      test,
     });
+    if (webHook) {
+      await axios.post(webHook, result).catch((err) => {
+        throw err;
+      });
+    }
 
     res.json(result);
-
   } catch (error) {
-    console.error('Monitor controller error:', error);
+    console.error("Monitor controller error:", error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: error.message || "Internal server error",
     });
   }
 }
 
 module.exports = {
-  monitor
+  monitor,
 };

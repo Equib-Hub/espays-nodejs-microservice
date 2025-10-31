@@ -24,6 +24,7 @@ async function monitorTokenTransfers(params) {
     endBlock,
     rpcUrl,
     maxNumberOfEvents,
+    test,
   } = params;
 
   // Validate inputs
@@ -131,13 +132,14 @@ async function monitorTokenTransfers(params) {
               const toAddress = ethers.getAddress(
                 "0x" + log.topics[2].slice(26)
               );
-
-              const isRegisteredUser = await addressExists([
-                fromAddress,
-                toAddress,
-              ]);
-              if (!isRegisteredUser) {
-                continue;
+              if (!test) {
+                const isRegisteredUser = await addressExists([
+                  fromAddress,
+                  toAddress,
+                ]);
+                if (!isRegisteredUser) {
+                  continue;
+                }
               }
 
               const amount = BigInt(log.data).toString();
