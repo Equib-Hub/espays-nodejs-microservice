@@ -11,6 +11,8 @@ const { InMemorySigner } = require("@taquito/signer");
 const algosdk = require("algosdk");
 const StellarHDWallet = require("stellar-hd-wallet");
 
+const CryptoJS = require("crypto-js");
+
 // Using pg (node-postgres) library
 const { Pool } = require("pg");
 require("dotenv").config();
@@ -396,58 +398,24 @@ async function getWalletsByUserId(userId) {
  * @param {string} salt - The salt/password to use for encryption (optional, falls back to ENCRYPTION_SALT from .env)
  * @returns {Promise<string>} Base64 encoded encrypted data with IV
  */
-async function encryptString(text, salt) {
-  // Use provided salt or fall back to environment variable
-  const encryptionSalt = salt || process.env.ENCRYPTION_SALT;
-
-  if (!encryptionSalt) {
-    throw new Error(
-      "Salt is required. Provide a salt parameter or set ENCRYPTION_SALT in .env file"
-    );
+function encryptString(text, salt) {
+  try {
+    if (typeof text === "object") {
+      text = text.join(" ");
+    }
+    // Use provided salt or fall back to environment variable
+    const encryptionSalt = salt || process.env.ENCRYPTION_SALT;
+    if (!encryptionSalt) {
+      throw new Error(
+        "Salt is required. Provide a salt parameter or set ENCRYPTION_SALT in .env file"
+      );
+    }
+    // Convert to base64
+    const encryptedText = CryptoJS.AES.encrypt(text, encryptionSalt);
+    return encryptedText.toString();
+  } catch (error) {
+    throw error;
   }
-
-  const encoder = new TextEncoder();
-
-  // Convert salt to key using PBKDF2
-  const saltBuffer = encoder.encode(encryptionSalt);
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    saltBuffer,
-    "PBKDF2",
-    false,
-    ["deriveBits", "deriveKey"]
-  );
-
-  const key = await crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: saltBuffer,
-      iterations: 10000,
-      hash: "SHA-256",
-    },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
-
-  // Generate random IV
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-
-  // Encrypt the text
-  const encryptedBuffer = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: iv },
-    key,
-    encoder.encode(text)
-  );
-
-  // Combine IV and encrypted data
-  const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(encryptedBuffer), iv.length);
-
-  // Convert to base64
-  return btoa(String.fromCharCode(...combined));
 }
 
 /**
@@ -456,7 +424,7 @@ async function encryptString(text, salt) {
  * @param {string} salt - The salt/password used for encryption (optional, falls back to ENCRYPTION_SALT from .env)
  * @returns {Promise<string>} The decrypted text
  */
-async function decryptString(encryptedText, salt) {
+function decryptString(encryptedText, salt) {
   if (encryptedText.length == 0) return encryptedText;
   // Use provided salt or fall back to environment variable
   const encryptionSalt = salt || process.env.ENCRYPTION_SALT;
@@ -467,67 +435,11 @@ async function decryptString(encryptedText, salt) {
     );
   }
 
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  // Convert base64 to buffer
-  const combined = Uint8Array.from(atob(encryptedText), (c) => c.charCodeAt(0));
-
-  // Extract IV and encrypted data
-  const iv = combined.slice(0, 12);
-  const encryptedData = combined.slice(12);
-
-  // Convert salt to key using PBKDF2
-  const saltBuffer = encoder.encode(encryptionSalt);
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    saltBuffer,
-    "PBKDF2",
-    false,
-    ["deriveBits", "deriveKey"]
-  );
-
-  const key = await crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: saltBuffer,
-      iterations: 10000,
-      hash: "SHA-256",
-    },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
-
-  // Decrypt the data
-  const decryptedBuffer = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: iv },
-    key,
-    encryptedData
-  );
-
-  return decoder.decode(decryptedBuffer);
+  const decrypted = CryptoJS.AES.decrypt(encryptedText, encryptionSalt)
+    .toString(CryptoJS.enc.Utf8)
+    .toString();
+  return decrypted;
 }
-
-// Example usage:
-(async () => {
-  const originalText = "Hello, this is a secret message!";
-  const salt = "mySecretPassword123";
-
-  console.log("Original text:", originalText);
-
-  // Encrypt
-  const encrypted = await encryptString(originalText, salt);
-  console.log("Encrypted:", encrypted);
-
-  // Decrypt
-  const decrypted = await decryptString(encrypted, salt);
-  console.log("Decrypted:", decrypted);
-
-  // Verify
-  console.log("Match:", originalText === decrypted);
-})();
 
 // Export functions
 module.exports = {
