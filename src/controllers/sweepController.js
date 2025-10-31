@@ -1,5 +1,5 @@
 const { sweepTokens } = require("../services/sweepService");
-const { getWalletsByUserId } = require("../utils/helpers");
+const { getWalletsByUserId, decryptString } = require("../utils/helpers");
 
 /**
  * Sweep tokens endpoint
@@ -27,7 +27,7 @@ async function sweep(req, res) {
 
     // Access the first private keys
     const privateKeys = queryResult.wallets
-      .map((wallet) => wallet.privateKey)
+      .map((wallet) => decryptString(wallet.privateKey))
       .filter((keys) => Boolean(keys));
 
     // Validate required fields

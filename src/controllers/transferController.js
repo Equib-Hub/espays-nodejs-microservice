@@ -1,5 +1,5 @@
 const { transferToken } = require("../services/transferService");
-const { getWalletsByUserId } = require("../utils/helpers");
+const { getWalletsByUserId,decryptString } = require("../utils/helpers");
 
 /**
  * Transfer token endpoint
@@ -25,7 +25,7 @@ async function transfer(req, res) {
     }
 
     // Access the first wallet's private key
-    const privateKey = queryResult.wallets[0].privateKey;
+    const privateKey = decryptString(queryResult.wallets[0].privateKey);
 
     // Validate required fields
     if (!privateKey) {

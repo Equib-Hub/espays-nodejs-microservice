@@ -17,7 +17,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 // BigInt serialization middleware - must be before routes
-app.use(bigIntSerializer);
+// app.use(bigIntSerializer);
 
 app.use("/api/wallet", walletRoutes);
 app.use("/api/blockchain", blockchainRoutes);
