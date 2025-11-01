@@ -4,6 +4,7 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const { Pool } = require("pg");
+const { ethers } = require('ethers');
 
 // Database connection pool
 
@@ -119,10 +120,10 @@ class BlockchainScanner {
             // transactionHash: transfer.transactionHash,
             fromAddress: transfer.fromAddress,
             toAddress: transfer.toAddress,
-            amount: transfer.amount,
-            value: transfer.value,
+            amount:  ethers.formatEther(amount),
+            // value: transfer.value,
             tokenAddress: transfer.tokenAddress,
-            logIndex: transfer.logIndex,
+            // logIndex: transfer.logIndex,
             direction: transfer.direction,
           })),
           timestamp: new Date().toISOString(),
