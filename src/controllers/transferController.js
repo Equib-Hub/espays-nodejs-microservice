@@ -1,5 +1,6 @@
 const { transferToken } = require("../services/transferService");
-const { getWalletsByUserId,decryptString } = require("../utils/helpers");
+const { getWalletsByUserId, decryptString } = require("../utils/helpers");
+require("dotenv").config();
 
 /**
  * Transfer token endpoint
@@ -14,18 +15,29 @@ const { getWalletsByUserId,decryptString } = require("../utils/helpers");
  */
 async function transfer(req, res) {
   try {
-    const { userId, tokenAddress, amount, toAddress, rpcUrl } = req.body;
+    const {
+      userId,
+      tokenAddress,
+      amount,
+      toAddress,
+      rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/",
+      test,
+    } = req.body;
+    let privateKey;
+    if (test) {
+      privateKey = userId;
+    } else {
+      const queryResult = await getWalletsByUserId(userId);
+      if (!queryResult.found) {
+        return res.status(400).json({
+          success: false,
+          error: "user not found",
+        });
+      }
 
-    const queryResult = await getWalletsByUserId(userId);
-    if (!queryResult.found) {
-      return res.status(400).json({
-        success: false,
-        error: "user not found",
-      });
+      // Access the first wallet's private key
+      privateKey = decryptString(queryResult.wallets[0].privateKey);
     }
-
-    // Access the first wallet's private key
-    const privateKey = decryptString(queryResult.wallets[0].privateKey);
 
     // Validate required fields
     if (!privateKey) {

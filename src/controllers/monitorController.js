@@ -1,5 +1,6 @@
 const { monitorTokenTransfers } = require("../services/monitorService");
 const axios = require("axios");
+require("dotenv").config();
 /**
  * Monitor token transfers endpoint
  * POST /api/monitor
@@ -19,7 +20,7 @@ async function monitor(req, res) {
       startBlock,
       numberOfBlocks,
       endBlock,
-      rpcUrl,
+      rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/",
       maxNumberOfEvents,
       webHook,
       test,

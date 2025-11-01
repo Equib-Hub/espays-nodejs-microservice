@@ -70,7 +70,7 @@ const CONFIG = {
   SCAN_BATCH_SIZE: parseInt(process.env.SCAN_BATCH_SIZE) || 10,
   POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL) || 20000, // ms
   WEBHOOK_URL: process.env.WEBHOOK_URL,
-  BLOCKCHAIN_TEST: process.env.BLOCKCHAIN_TEST,
+  BLOCKCHAIN_MONITOR_TEST: process.env.BLOCKCHAIN_MONITOR_TEST,
 };
 
 // ERC20 Transfer event signature
@@ -279,7 +279,7 @@ class BlockchainScanner {
         const addressArray = Array.from(allAddresses);
 
         let walletAddresses;
-        if (CONFIG.BLOCKCHAIN_TEST) {
+        if (CONFIG.BLOCKCHAIN_MONITOR_TEST) {
           walletAddresses = new Set(addressArray);
         } else {
           const placeholders = addressArray.map((_, i) => `${i + 1}`).join(",");

@@ -1,5 +1,6 @@
 const { sweepTokens } = require("../services/sweepService");
 const { getWalletsByUserId, decryptString } = require("../utils/helpers");
+require("dotenv").config();
 
 /**
  * Sweep tokens endpoint
@@ -14,22 +15,33 @@ const { getWalletsByUserId, decryptString } = require("../utils/helpers");
  */
 async function sweep(req, res) {
   try {
-    const { userIds, tokenAddress, minBalance, hotWalletAddress, rpcUrl } =
-      req.body;
+    const {
+      userIds,
+      tokenAddress,
+      minBalance,
+      hotWalletAddress,
+      rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/",
+      test,
+    } = req.body;
 
-    const queryResult = await getWalletsByUserId(userIds);
-    if (!queryResult.found) {
-      return res.status(400).json({
-        success: false,
-        error: "no user not found",
-      });
+    let privateKeys = [];
+    if (test) {
+      privateKeys = userIds;
+    } else {
+      const queryResult = await getWalletsByUserId(userIds);
+      if (!queryResult.found) {
+        return res.status(400).json({
+          success: false,
+          error: "no user not found",
+        });
+      }
+
+      // Access the first private keys
+      privateKeys = queryResult.wallets
+        .map((wallet) => decryptString(wallet.privateKey))
+        .filter((keys) => Boolean(keys));
     }
-
-    // Access the first private keys
-    const privateKeys = queryResult.wallets
-      .map((wallet) => decryptString(wallet.privateKey))
-      .filter((keys) => Boolean(keys));
-
+    
     // Validate required fields
     if (
       !privateKeys ||
