@@ -392,6 +392,8 @@ async function getWalletsByUserId(userId) {
   }
 }
 
+
+
 /**
  * Encrypts a string using AES-GCM with a password-derived key
  * @param {string} text - The text to encrypt

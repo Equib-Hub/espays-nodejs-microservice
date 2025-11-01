@@ -17,7 +17,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 // BigInt serialization middleware - must be before routes
-// app.use(bigIntSerializer);
+app.use(bigIntSerializer);
 
 app.use("/api/wallet", walletRoutes);
 app.use("/api/blockchain", blockchainRoutes);
@@ -44,7 +44,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // End of Swagger setup
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT,"0.0.0.0", () => {
   console.log(
     `✅ Wallet Middleware Service running at http://localhost:${PORT}`
   );
