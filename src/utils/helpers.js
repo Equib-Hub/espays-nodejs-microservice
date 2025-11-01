@@ -443,6 +443,121 @@ function decryptString(encryptedText, salt) {
   return decrypted;
 }
 
+/**
+ * Creates the blockchain_data table if it doesn't exist
+ * @returns {Promise<void>}
+ */
+async function createBlockchainTable() {
+  const query = `
+    CREATE TABLE IF NOT EXISTS blockchain_data (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) UNIQUE NOT NULL,
+      data JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_blockchain_data_name ON blockchain_data(name);
+  `;
+
+  try {
+    await pool.query(query);
+    console.log('Table blockchain_data created or already exists');
+  } catch (error) {
+    console.error('Error creating table:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Gets a row from blockchain_data table by name
+ * @param {string} name - The unique name to search for
+ * @returns {Promise<Object|null>} The row data or null if not found
+ */
+async function getBlockchainData(name) {
+  const query = `
+    SELECT id, name, data, created_at, updated_at
+    FROM blockchain_data
+    WHERE name = $1
+  `;
+
+  try {
+    const result = await pool.query(query, [name]);
+    
+    if (result.rows.length === 0) {
+      console.log(`No data found for name: ${name}`);
+      return null;
+    }
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error getting data:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Inserts or updates data in blockchain_data table (UPSERT)
+ * @param {string} name - The unique name
+ * @param {Object} data - The JSON data to store
+ * @returns {Promise<Object>} The inserted or updated row
+ */
+async function upsertBlockchainData(name, data) {
+  const query = `
+    INSERT INTO blockchain_data (name, data, created_at, updated_at)
+    VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT (name)
+    DO UPDATE SET
+      data = $2,
+      updated_at = CURRENT_TIMESTAMP
+    RETURNING id, name, data, created_at, updated_at
+  `;
+
+  try {
+    const result = await pool.query(query, [name, JSON.stringify(data)]);
+    console.log(`Data upserted for name: ${name}`);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error upserting data:', error.message);
+    throw error;
+  }
+}
+
+// Example usage
+async function example() {
+  try {
+    // 1. Create table
+    await createBlockchainTable();
+
+    // 2. Insert new data
+    const newData = await upsertBlockchainData('ethereum', {
+      chainId: 1,
+      rpc: 'https://eth.llamarpc.com',
+      explorer: 'https://etherscan.io'
+    });
+    console.log('Inserted:', newData);
+
+    // 3. Update existing data
+    const updatedData = await upsertBlockchainData('ethereum', {
+      chainId: 1,
+      rpc: 'https://eth.llamarpc.com',
+      explorer: 'https://etherscan.io',
+      nativeCurrency: 'ETH'
+    });
+    console.log('Updated:', updatedData);
+
+    // 4. Get data
+    const retrieved = await getBlockchainData('ethereum');
+    console.log('Retrieved:', retrieved);
+
+    // Close pool when done
+    await pool.end();
+  } catch (error) {
+    console.error('Example error:', error);
+  }
+}
+
+
 // Export functions
 module.exports = {
   generateWallets,
@@ -451,4 +566,7 @@ module.exports = {
   addressExists,
   encryptString,
   decryptString,
+  createBlockchainTable,
+  getBlockchainData,
+  upsertBlockchainData,
 };

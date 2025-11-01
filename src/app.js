@@ -44,7 +44,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // End of Swagger setup
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT,"0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(
     `✅ Wallet Middleware Service running at http://localhost:${PORT}`
   );

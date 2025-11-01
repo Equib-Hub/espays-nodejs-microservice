@@ -94,12 +94,14 @@ async function monitorTokenTransfers(params) {
         );
 
         // Filter receipts for transactions sent to the token address
-        const relevantReceipts = receipts.filter(
-          (receipt) =>
+        const relevantReceipts = receipts.filter((receipt) => {
+          console.log("address: ", receipt.to)
+          return (
             receipt &&
             receipt.to &&
-            receipt.to.toLowerCase() === tokenAddressLower
-        );
+            receipt.to.toLowerCase() == tokenAddressLower
+          );
+        });
 
         console.log(
           `Found ${relevantReceipts.length} transactions to token address in block ${currentBlock}`

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "NODE_ENV=production node src/app.js",
     "dev": "node src/app.js",
+    "mon": "node src/blockmonitor.js",
     "test": "jest"
   },
   "dependencies": {

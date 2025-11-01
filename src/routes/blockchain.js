@@ -6,7 +6,7 @@ const { transfer } = require('../controllers/transferController');
 const { sweep } = require('../controllers/sweepController');
 
 // Monitor endpoint - scan blockchain for token transfers
-router.post('/monitor', monitor);
+// router.post('/monitor', monitor);
 
 // Transfer endpoint - transfer tokens from one address to another
 router.post('/transfer', transfer);
