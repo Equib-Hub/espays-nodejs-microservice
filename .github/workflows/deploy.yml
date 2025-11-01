@@ -3,6 +3,7 @@ name: Deploy Node.js Microservices
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -25,18 +26,34 @@ jobs:
           export PATH=$PATH:/usr/bin:/usr/local/bin
           
           cd /var/www/nodejs.espays.org
-          git remote set-url origin git@github.com:Equib-Hub/espays-nodejs-microservice.git
+          
+          echo "=== Git Status Before Pull ==="
+          git status
+          git log -1 --oneline
+          
+          echo "=== Resetting Any Local Changes ==="
+          git fetch origin
+          git reset --hard origin/main
+          git clean -fd
           
           echo "=== Pulling Latest Code ==="
-          git checkout main
           git pull origin main
           
-          echo "=== Installing Dependencies ==="
-          npm install --production --legacy-peer-deps
+          echo "=== Git Status After Pull ==="
+          git log -1 --oneline
+          git status
           
-          echo "=== Setting up PM2 ==="
-          if [ ! -f ecosystem.config.js ]; then
-            cat > ecosystem.config.js << 'EOF'
+          echo "=== Installing Dependencies ==="
+          npm ci --production --legacy-peer-deps || npm install --production --legacy-peer-deps
+          
+          echo "=== Verifying app.js exists ==="
+          if [ ! -f "src/app.js" ]; then
+            echo "ERROR: src/app.js not found!"
+            exit 1
+          fi
+          
+          echo "=== Setting up PM2 ecosystem config ==="
+          cat > ecosystem.config.js << 'EOF'
           module.exports = {
             apps: [{
               name: 'espays-microservices',
@@ -46,13 +63,19 @@ jobs:
               env: {
                 NODE_ENV: 'production',
                 PORT: 3000
-              }
+              },
+              error_file: 'logs/pm2-error.log',
+              out_file: 'logs/pm2-out.log',
+              log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+              merge_logs: true
             }]
           };
           EOF
-          fi
           
-          # Restart the application
+          echo "=== Creating logs directory ==="
+          mkdir -p logs
+          
+          echo "=== Restarting Application with PM2 ==="
           pm2 delete espays-microservices 2>/dev/null || true
           pm2 start ecosystem.config.js
           pm2 save
@@ -61,5 +84,10 @@ jobs:
           sudo chown -R $USER:$USER /var/www/nodejs.espays.org
           
           echo "=== Node.js Deployment Complete ==="
+          echo "Build timestamp: $(date)"
+          echo ""
           echo "=== PM2 Status ==="
           pm2 list
+          echo ""
+          echo "=== Recent Logs ==="
+          pm2 logs espays-microservices --lines 20 --nostream
