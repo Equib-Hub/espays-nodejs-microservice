@@ -525,17 +525,24 @@ async function upsertBlockchainData(name, data) {
  * Gets the first HOT wallet address
  * @returns {Promise<string|null>} The address or null if not found
  */
-async function getHotWalletAddress() {
+async function getHotWalletAddress(assetId) {
+  if (!assetId) {
+    assetId = process.env.DEFAULT_ASSET_ID;
+  }
+
+  if (!assetId) {
+    throw new Error("No asset id");
+  }
   const query = `
     SELECT address
     FROM wallet_configurations
-    WHERE type = 'HOT' AND is_active = true
+    WHERE type = 'HOT' AND is_active = true AND asset_id = $1
     ORDER BY created_at ASC
     LIMIT 1
   `;
 
   try {
-    const result = await pool.query(query);
+    const result = await pool.query(query, [assetId]);
 
     if (result.rows.length === 0) {
       console.log("No HOT wallet address found");
@@ -553,17 +560,17 @@ async function getHotWalletAddress() {
  * Gets the first HOT wallet key
  * @returns {Promise<string|null>} The key or null if not found
  */
-async function getHotWalletKey() {
+async function getHotWalletKey(assetId) {
   const query = `
     SELECT key
     FROM wallet_configurations
-    WHERE type = 'HOT' AND is_active = true
+    WHERE type = 'HOT' AND is_active = true AND asset_id = $1
     ORDER BY created_at ASC
     LIMIT 1
   `;
 
   try {
-    const result = await pool.query(query);
+    const result = await pool.query(query, [assetId]);
 
     if (result.rows.length === 0) {
       console.log("No HOT wallet key found");

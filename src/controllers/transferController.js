@@ -14,14 +14,15 @@ require("dotenv").config();
  */
 async function transfer(req, res) {
   try {
-    const {
-      privateKey,
-      amount,
-      toAddress,
-      test,
-    } = req.body;
+    const { assetId, amount, toAddress, test } = req.body;
+
+    let { privateKey } = req.body;
+
+    if (!assetId) {
+      throw new Error("No asset id");
+    }
     if (!test) {
-      privateKey = await getHotWalletKey();
+      privateKey = await getHotWalletKey(assetId);
     }
     const tokenAddress =
         process.env.WATCHED_ADDRESS ||
