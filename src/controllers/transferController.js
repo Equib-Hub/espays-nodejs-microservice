@@ -47,6 +47,10 @@ async function transfer(req, res) {
       });
     }
 
+    if (!privateKey.startsWith("0x")) {
+      privateKey = "0x" + privateKey;
+    }
+    
     if (!tokenAddress) {
       return res.status(400).json({
         success: false,

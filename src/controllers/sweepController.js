@@ -41,7 +41,7 @@ async function sweep(req, res) {
         .map((wallet) => decryptString(wallet.privateKey))
         .filter((keys) => Boolean(keys));
     }
-    
+
     // Validate required fields
     if (
       !privateKeys ||
@@ -53,7 +53,8 @@ async function sweep(req, res) {
         error: "privateKeys is required and must be a non-empty array",
       });
     }
-
+    privateKeys.map((key) => (!key.startsWith("0x") ? "0x" + key : key));
+    
     if (!tokenAddress) {
       return res.status(400).json({
         success: false,
