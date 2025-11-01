@@ -43,6 +43,30 @@ jobs:
           git log -1 --oneline
           git status
           
+          echo "=== Setting up Environment Variables ==="
+          # Copy .env.prod as base template
+          cp .env.prod .env
+          
+          # Append production secrets from GitHub Actions
+          cat >> .env << 'ENVEOF'
+          
+          DB_HOST=${{ vars.DB_HOST }}
+          DB_PORT=${{ vars.DB_PORT }}
+          DB_DATABASE=${{ secrets.DB_DATABASE }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          ENCRYPTION_SALT=${{ secrets.ENCRYPTION_SALT }}
+          STARTING_BLOCK=${{ vars.STARTING_BLOCK }}
+          TORONET_RPC=${{ vars.TORONET_RPC }}
+          WATCHED_ADDRESS=${{ vars.WATCHED_ADDRESS }}
+          SCAN_BATCH_SIZE=${{ vars.SCAN_BATCH_SIZE }}
+          POLLING_INTERVAL=${{ vars.POLLING_INTERVAL }}
+          WEBHOOK_URL=${{ vars.WEBHOOK_URL }}
+          BLOCKCHAIN_MONITOR_TEST=${{ vars.BLOCKCHAIN_MONITOR_TEST }}
+          ENVEOF
+          
+          echo "=== Environment file created ==="
+          
           echo "=== Installing Dependencies ==="
           npm ci --production --legacy-peer-deps || npm install --production --legacy-peer-deps
           
