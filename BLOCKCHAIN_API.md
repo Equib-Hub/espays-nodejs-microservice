@@ -37,76 +37,7 @@ The server will start on `http://localhost:3000`
 
 ## API Endpoints
 
-### 1. Monitor Token Transfers
-
-Scans blockchain for ERC20 token transfer events that the to or from address is our user.
-
-**Endpoint:** `POST /api/blockchain/monitor`
-
-**Request Body:**
-```json
-{
-  "tokenAddress": "0x...",
-  "startBlock": 24251141,
-  "numberOfBlocks": 100,
-  "endBlock": 24253141,
-  "rpcUrl": "https://toronet.org/rpc/",
-  "maxNumberOfEvents": 100,
-  "webHook": "https://webhook_to_call_with_event.data",
-  "test": false
-}
-```
-
-**Parameters:**
-- `tokenAddress` (required) - ERC20 token contract address
-- `startBlock` (required) - Block number to start scanning from
-- `numberOfBlocks` (optional: default to 100) - Maximum number of blocks to scan
-- `endBlock` (optional) - Block number to stop at (will use latest if not provided)
-- `rpcUrl` (required) - Blockchain RPC URL
-- `maxNumberOfEvents` (required) - Maximum number of transfer events to return
-- `webHook` (optional) - The webHook to call (It pass the event data into this webhook using a post request)
-- `test` (optional) - skips the database check to see if the address involved in the transfer event is a user. Set to true to skip the test
-
-**Response:**
-```json
-{
-  "success": true,
-  "tokenAddress": "0x...",
-  "tokenSymbol": "USDT",
-  "tokenDecimals": 6,
-  "startBlock": 18000000,
-  "endBlock": 18000500,
-  "totalEventsFound": 50,
-  "events": [
-    {
-      "transactionHash": "0x...",
-      "blockNumber": 18000100,
-      "blockTimestamp": 1699000000,
-      "from": "0x...",
-      "to": "0x...",
-      "amount": "1000000000",
-      "logIndex": 5
-    }
-  ]
-}
-```
-
-**cURL Example:**
-```bash
-curl -X POST http://localhost:3000/api/blockchain/monitor \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tokenAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    "startBlock": 18000000,
-    "numberOfBlocks": 1000,
-    "rpcUrl": "https://toronet.org/rpc/",
-    "maxNumberOfEvents": 10
-  }'
-```
-
----
-
-### 2. Transfer Token
+### 1. Transfer Token
 
 Transfers ERC20 tokens from one address to another with balance tracking.
 
@@ -115,20 +46,17 @@ Transfers ERC20 tokens from one address to another with balance tracking.
 **Request Body:**
 ```json
 {
-  "userId": "user-id-dijfb9",
-  "tokenAddress": "0x...",
   "amount": "100.5",
   "toAddress": "0x...",
-  "rpcUrl": "https://toronet.org/rpc/"
 }
 ```
 
 **Parameters:**
-- `userId` (required) - User id of the user
-- `tokenAddress` (required) - ERC20 token contract address
 - `amount` (required) - Amount to transfer (in token units, e.g., "100.5" for 100.5 tokens)
 - `toAddress` (required) - Recipient address
-- `rpcUrl` (required) - Blockchain RPC URL
+- `test` (optional) - if this is set then it would use the privateKey to make the transfer
+- `privateKey` (optional) - privateKey to use if testing
+
 
 **Response:**
 ```json
@@ -176,11 +104,8 @@ Transfers ERC20 tokens from one address to another with balance tracking.
 curl -X POST http://localhost:3000/api/blockchain/transfer \
   -H "Content-Type: application/json" \
   -d '{
-    "userId": "user-id-dkf78",
-    "tokenAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
     "amount": "10",
-    "toAddress": "0xRecipientAddress...",
-    "rpcUrl": "https://toronet.org/rpc/"
+    "toAddress": "0xRecipientAddress..."
   }'
 ```
 
@@ -200,19 +125,12 @@ Sweeps tokens from multiple wallets to a hot wallet address.
     "user-id-988y...",
     "user-id-988y..."
   ],
-  "tokenAddress": "0x...",
-  "minBalance": "10",
-  "hotWalletAddress": "0x...",
-  "rpcUrl": "https://toronet.org/rpc/"
 }
 ```
 
 **Parameters:**
 - `userIds` (required) - Array of user ids 
-- `tokenAddress` (required) - ERC20 token contract address
-- `minBalance` (required) - Minimum balance required to sweep (in token units)
-- `hotWalletAddress` (required) - Hot wallet address to receive all tokens
-- `rpcUrl` (required) - Blockchain RPC URL
+- `test` (optional) - if this is set then it would use the userIds as the private keys to make the transfer
 
 **Response:**
 ```json
@@ -276,11 +194,7 @@ curl -X POST http://localhost:3000/api/blockchain/sweep \
       "user-id-1234567890abcdef...",
       "user-id-abcdef1234567890...",
       "user-id-567890abcdef1234..."
-    ],
-    "tokenAddress": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    "minBalance": "10",
-    "hotWalletAddress": "0xHotWalletAddress...",
-    "rpcUrl": "https://toronet.org/rpc/"
+    ]
   }'
 ```
 

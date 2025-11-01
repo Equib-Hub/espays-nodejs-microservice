@@ -1,5 +1,9 @@
 const { sweepTokens } = require("../services/sweepService");
-const { getWalletsByUserId, decryptString } = require("../utils/helpers");
+const {
+  getWalletsByUserId,
+  decryptString,
+  getHotWalletAddress,
+} = require("../utils/helpers");
 require("dotenv").config();
 
 /**
@@ -7,23 +11,23 @@ require("dotenv").config();
  * POST /api/sweep
  * Body: {
  *   userIds: string[],
- *   tokenAddress: string,
- *   minBalance: string,
- *   hotWalletAddress: string,
- *   rpcUrl: string
+ *   test: boolean(optional)
  * }
  */
 async function sweep(req, res) {
   try {
-    const {
-      userIds,
-      tokenAddress,
-      minBalance,
-      hotWalletAddress,
-      rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/",
-      test,
-    } = req.body;
+    const { userIds, test } = req.body;
 
+    const tokenAddress =
+        process.env.WATCHED_ADDRESS ||
+        "0x241178EcC063f6DB8626c471Ee61A63644BF95A3",
+      rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/";
+
+    const hotWalletAddress = await getHotWalletAddress();
+
+    if (!hotWalletAddress) {
+      throw new Error("No hotwallet address");
+    }
     let privateKeys = [];
     if (test) {
       privateKeys = userIds;
@@ -54,18 +58,11 @@ async function sweep(req, res) {
       });
     }
     privateKeys.map((key) => (!key.startsWith("0x") ? "0x" + key : key));
-    
+
     if (!tokenAddress) {
       return res.status(400).json({
         success: false,
         error: "tokenAddress is required",
-      });
-    }
-
-    if (!minBalance) {
-      return res.status(400).json({
-        success: false,
-        error: "minBalance is required",
       });
     }
 
@@ -87,7 +84,6 @@ async function sweep(req, res) {
     const result = await sweepTokens({
       privateKeys,
       tokenAddress,
-      minBalance,
       hotWalletAddress,
       rpcUrl,
     });

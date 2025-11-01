@@ -1,43 +1,32 @@
 const { transferToken } = require("../services/transferService");
-const { getWalletsByUserId, decryptString } = require("../utils/helpers");
+const { getHotWalletKey } = require("../utils/helpers");
 require("dotenv").config();
 
 /**
  * Transfer token endpoint
  * POST /api/transfer
  * Body: {
- *   userId: string,
- *   tokenAddress: string,
  *   amount: string,
  *   toAddress: string,
- *   rpcUrl: string
+ *   privateKey: string(optional),
+ *   test: boolean(optional)
  * }
  */
 async function transfer(req, res) {
   try {
     const {
-      userId,
-      tokenAddress,
+      privateKey,
       amount,
       toAddress,
-      rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/",
       test,
     } = req.body;
-    let privateKey;
-    if (test) {
-      privateKey = userId;
-    } else {
-      const queryResult = await getWalletsByUserId(userId);
-      if (!queryResult.found) {
-        return res.status(400).json({
-          success: false,
-          error: "user not found",
-        });
-      }
-
-      // Access the first wallet's private key
-      privateKey = decryptString(queryResult.wallets[0].privateKey);
+    if (!test) {
+      privateKey = await getHotWalletKey();
     }
+    const tokenAddress =
+        process.env.WATCHED_ADDRESS ||
+        "0x241178EcC063f6DB8626c471Ee61A63644BF95A3",
+      rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/";
 
     // Validate required fields
     if (!privateKey) {
@@ -50,7 +39,7 @@ async function transfer(req, res) {
     if (!privateKey.startsWith("0x")) {
       privateKey = "0x" + privateKey;
     }
-    
+
     if (!tokenAddress) {
       return res.status(400).json({
         success: false,

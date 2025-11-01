@@ -116,7 +116,7 @@ class BlockchainScanner {
           transferCount: transfers.length,
           transfers: transfers.map((transfer) => ({
             blockNumber: transfer.blockNumber,
-            transactionHash: transfer.transactionHash,
+            // transactionHash: transfer.transactionHash,
             fromAddress: transfer.fromAddress,
             toAddress: transfer.toAddress,
             amount: transfer.amount,
