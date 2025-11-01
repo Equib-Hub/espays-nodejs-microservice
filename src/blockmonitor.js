@@ -4,7 +4,7 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const { Pool } = require("pg");
-const { ethers } = require('ethers');
+const { ethers } = require("ethers");
 
 // Database connection pool
 
@@ -112,15 +112,16 @@ class BlockchainScanner {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          type: "blockchain_transfers",
           startBlock,
           endBlock,
           transferCount: transfers.length,
           transfers: transfers.map((transfer) => ({
             blockNumber: transfer.blockNumber,
             // transactionHash: transfer.transactionHash,
-            fromAddress: transfer.fromAddress,
+            // fromAddress: transfer.fromAddress,
             toAddress: transfer.toAddress,
-            amount:  ethers.formatEther(amount),
+            amount: ethers.formatEther(amount),
             // value: transfer.value,
             tokenAddress: transfer.tokenAddress,
             // logIndex: transfer.logIndex,
@@ -219,9 +220,9 @@ class BlockchainScanner {
                   // topics[1] = from address (padded)
                   // topics[2] = to address (padded)
                   // data = amount
-                  const fromAddress = ethers.getAddress(
-                    "0x" + log.topics[1].slice(26)
-                  );
+                  // const fromAddress = ethers.getAddress(
+                  //   "0x" + log.topics[1].slice(26)
+                  // );
                   const toAddress = ethers.getAddress(
                     "0x" + log.topics[2].slice(26)
                   );
@@ -231,7 +232,7 @@ class BlockchainScanner {
                   transfers.push({
                     blockNumber,
                     transactionHash: txHash,
-                    fromAddress,
+                    // fromAddress,
                     toAddress,
                     amount,
                     value,
@@ -272,7 +273,7 @@ class BlockchainScanner {
         console.log(transfers, "transfers");
         const allAddresses = new Set();
         transfers.forEach((transfer) => {
-          allAddresses.add(transfer.fromAddress.toLowerCase());
+          // allAddresses.add(transfer.fromAddress.toLowerCase());
           allAddresses.add(transfer.toAddress.toLowerCase());
         });
 
@@ -299,9 +300,8 @@ class BlockchainScanner {
 
         // Filter transfers where from or to address exists in wallets
         relevantTransfers = transfers.filter(
-          (transfer) =>
-            walletAddresses.has(transfer.fromAddress.toLowerCase()) ||
-            walletAddresses.has(transfer.toAddress.toLowerCase())
+          (transfer) => walletAddresses.has(transfer.toAddress.toLowerCase())
+          // walletAddresses.has(transfer.fromAddress.toLowerCase()) ||
         );
 
         // Log only relevant transfers
@@ -310,34 +310,34 @@ class BlockchainScanner {
             `\n📋 Block ${startBlock} - ${endBlock} Found ${relevantTransfers.length} relevant transfer(s):`
           );
           relevantTransfers.forEach((transfer, index) => {
-            const fromInWallet = walletAddresses.has(
-              transfer.fromAddress.toLowerCase()
-            );
-            const toInWallet = walletAddresses.has(
-              transfer.toAddress.toLowerCase()
-            );
-            const direction =
-              fromInWallet && toInWallet
-                ? "internal"
-                : fromInWallet
-                ? "outgoing"
-                : "incoming";
+            // const fromInWallet = walletAddresses.has(
+            //   transfer.fromAddress.toLowerCase()
+            // );
+            // const toInWallet = walletAddresses.has(
+            //   transfer.toAddress.toLowerCase()
+            // );
+            const direction = "incoming";
+            // fromInWallet && toInWallet
+            //   ? "internal"
+            //   : fromInWallet
+            //   ? "outgoing"
+            //   : "incoming";
 
             transfer.direction = direction;
 
-            console.log(`\n  ${direction} Transfer #${index + 1}:`);
-            console.log(`    Transaction Hash: ${transfer.transactionHash}`);
-            console.log(
-              `    From: ${transfer.fromAddress}${fromInWallet ? " ✓" : ""}`
-            );
-            console.log(
-              `    To: ${transfer.toAddress}${toInWallet ? " ✓" : ""}`
-            );
-            console.log(`    Amount: ${transfer.amount}`);
-            console.log(`    ETH Value: ${transfer.value}`);
-            console.log(`    Token Address: ${transfer.tokenAddress}`);
+            // console.log(`\n  ${direction} Transfer #${index + 1}:`);
+            // console.log(`    Transaction Hash: ${transfer.transactionHash}`);
+            // console.log(
+            //   `    From: ${transfer.fromAddress}${fromInWallet ? " ✓" : ""}`
+            // );
+            // console.log(
+            //   `    To: ${transfer.toAddress}${toInWallet ? " ✓" : ""}`
+            // );
+            // console.log(`    Amount: ${transfer.amount}`);
+            // console.log(`    ETH Value: ${transfer.value}`);
+            // console.log(`    Token Address: ${transfer.tokenAddress}`);
           });
-          console.log("");
+          // console.log("");
         } else {
           console.log(`No transfers involving tracked wallets`);
         }
