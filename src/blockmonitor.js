@@ -67,8 +67,8 @@ const CONFIG = {
   RPC_URL: process.env.TORONET_RPC || "https://toronet.org/rpc/",
   STARTING_BLOCK: parseInt(process.env.STARTING_BLOCK) || 24541889,
   WATCHED_ADDRESS: process.env.WATCHED_ADDRESS.toLowerCase(),
-  SCAN_BATCH_SIZE: parseInt(process.env.SCAN_BATCH_SIZE) || 10,
-  POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL) || 20000, // ms
+  SCAN_BATCH_SIZE: parseInt(process.env.SCAN_BATCH_SIZE) || 300,
+  POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL) || 30000, // ms
   WEBHOOK_URL: process.env.WEBHOOK_URL,
   BLOCKCHAIN_MONITOR_TEST: process.env.BLOCKCHAIN_MONITOR_TEST,
 };
