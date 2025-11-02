@@ -130,11 +130,11 @@ class BlockchainScanner {
           transfers: transfers.map((transfer) => ({
             blockNumber: transfer.blockNumber,
             transactionHash: transfer.transactionHash,
-            fromAddress: transfer.fromAddress,
-            toAddress: transfer.toAddress,
+            fromAddress: transfer.fromAddress.toLowerCase(),
+            toAddress: transfer.toAddress.toLowerCase(),
             amount: ethers.formatEther(transfer.amount),
             // value: transfer.value,
-            tokenAddress: transfer.tokenAddress,
+            tokenAddress: transfer.tokenAddress.toLowerCase(),
             // logIndex: transfer.logIndex,
             direction: transfer.direction,
           })),
@@ -239,6 +239,8 @@ class BlockchainScanner {
         return [];
       }
 
+      console.log(this.hotWalletAddress ? `Hot wallet address: ${this.hotWalletAddress}` : 'No hot wallet configured');
+      
       console.log(`Monitoring ${monitoredAddresses.length} wallet addresses`);
 
       // Use eth_getLogs to get Transfer events involving our wallets
