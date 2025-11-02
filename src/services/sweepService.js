@@ -20,7 +20,6 @@ const STATUS = {
  * @param {Object} params - Sweep parameters
  * @param {string[]} params.privateKeys - Array of private keys to sweep from
  * @param {string} params.tokenAddress - Address of the ERC20 token
- * @param {string} params.minBalance - Minimum balance required to sweep (in token units)
  * @param {string} params.hotWalletAddress - Hot wallet address to receive tokens
  * @param {string} params.rpcUrl - RPC URL for blockchain connection
  * @returns {Promise<Object>} Sweep results with total amount and transaction details
@@ -29,7 +28,6 @@ async function sweepTokens(params) {
   const {
     privateKeys,
     tokenAddress,
-    minBalance,
     hotWalletAddress,
     rpcUrl
   } = params;
@@ -43,9 +41,6 @@ async function sweepTokens(params) {
   }
   if (!hotWalletAddress || !ethers.isAddress(hotWalletAddress)) {
     throw new Error('Invalid hot wallet address');
-  }
-  if (!minBalance || parseFloat(minBalance) < 0) {
-    throw new Error('Invalid minimum balance');
   }
   if (!rpcUrl) {
     throw new Error('RPC URL is required');
@@ -63,10 +58,8 @@ async function sweepTokens(params) {
       tokenContract.symbol()
     ]);
 
-    const minBalanceInWei = ethers.parseUnits(minBalance, decimals);
 
     console.log(`Starting sweep operation for ${symbol} token`);
-    console.log(`Minimum balance: ${minBalance} ${symbol}`);
     console.log(`Hot wallet: ${hotWalletAddress}`);
     console.log(`Processing ${privateKeys.length} wallets...`);
 
@@ -111,15 +104,6 @@ async function sweepTokens(params) {
         const balanceFormatted = ethers.formatUnits(balance, decimals);
 
         console.log(`Wallet ${i + 1}/${privateKeys.length} (${wallet.address}): ${balanceFormatted} ${symbol}`);
-
-        // Check if balance meets minimum
-        if (balance < minBalanceInWei) {
-          result.status = STATUS.NOT_UP_TO_MIN_BALANCE;
-          result.amount = balanceFormatted;
-          result.error = `Balance ${balanceFormatted} is below minimum ${minBalance}`;
-          results.push(result);
-          continue;
-        }
 
         // Check if balance is zero
         if (balance === BigInt(0)) {

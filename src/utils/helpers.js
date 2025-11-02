@@ -392,8 +392,6 @@ async function getWalletsByUserId(userId) {
   }
 }
 
-
-
 /**
  * Encrypts a string using AES with a generated or provided salt
  * @param {string} text - The text to encrypt
@@ -480,9 +478,9 @@ async function createBlockchainTable() {
 
   try {
     await pool.query(query);
-    console.log('Table blockchain_data created or already exists');
+    console.log("Table blockchain_data created or already exists");
   } catch (error) {
-    console.error('Error creating table:', error.message);
+    console.error("Error creating table:", error.message);
     throw error;
   }
 }
@@ -501,15 +499,15 @@ async function getBlockchainData(name) {
 
   try {
     const result = await pool.query(query, [name]);
-    
+
     if (result.rows.length === 0) {
       console.log(`No data found for name: ${name}`);
       return null;
     }
-    
+
     return result.rows[0];
   } catch (error) {
-    console.error('Error getting data:', error.message);
+    console.error("Error getting data:", error.message);
     throw error;
   }
 }
@@ -536,45 +534,103 @@ async function upsertBlockchainData(name, data) {
     console.log(`Data upserted for name: ${name}`);
     return result.rows[0];
   } catch (error) {
-    console.error('Error upserting data:', error.message);
+    console.error("Error upserting data:", error.message);
     throw error;
   }
 }
 
-// Example usage
-async function example() {
+/**
+ * Gets the first HOT wallet address
+ * @returns {Promise<string|null>} The address or null if not found
+ */
+async function getHotWalletAddress(assetId) {
+  if (!assetId) {
+    assetId = process.env.DEFAULT_ASSET_ID;
+  }
+
+  if (!assetId) {
+    throw new Error("No asset id");
+  }
+  const query = `
+    SELECT address
+    FROM wallet_configurations
+    WHERE type = 'HOT' AND is_active = true AND asset_id = $1
+    ORDER BY created_at ASC
+    LIMIT 1
+  `;
+
   try {
-    // 1. Create table
-    await createBlockchainTable();
+    const result = await pool.query(query, [assetId]);
 
-    // 2. Insert new data
-    const newData = await upsertBlockchainData('ethereum', {
-      chainId: 1,
-      rpc: 'https://eth.llamarpc.com',
-      explorer: 'https://etherscan.io'
-    });
-    console.log('Inserted:', newData);
+    if (result.rows.length === 0) {
+      console.log("No HOT wallet address found");
+      return null;
+    }
 
-    // 3. Update existing data
-    const updatedData = await upsertBlockchainData('ethereum', {
-      chainId: 1,
-      rpc: 'https://eth.llamarpc.com',
-      explorer: 'https://etherscan.io',
-      nativeCurrency: 'ETH'
-    });
-    console.log('Updated:', updatedData);
-
-    // 4. Get data
-    const retrieved = await getBlockchainData('ethereum');
-    console.log('Retrieved:', retrieved);
-
-    // Close pool when done
-    await pool.end();
+    return result.rows[0].address;
   } catch (error) {
-    console.error('Example error:', error);
+    console.error("Error getting HOT wallet address:", error.message);
+    throw error;
   }
 }
 
+/**
+ * Gets the first HOT wallet key
+ * @returns {Promise<string|null>} The key or null if not found
+ */
+async function getHotWalletKey(assetId) {
+  const query = `
+    SELECT key
+    FROM wallet_configurations
+    WHERE type = 'HOT' AND is_active = true AND asset_id = $1
+    ORDER BY created_at ASC
+    LIMIT 1
+  `;
+
+  try {
+    const result = await pool.query(query, [assetId]);
+
+    if (result.rows.length === 0) {
+      console.log("No HOT wallet key found");
+      return null;
+    }
+
+    return decryptString(result.rows[0].key);
+  } catch (error) {
+    console.error("Error getting HOT wallet key:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Gets the complete first HOT wallet configuration
+ * @returns {Promise<Object|null>} The wallet configuration or null if not found
+ */
+async function getHotWallet() {
+  const query = `
+    SELECT id, asset_id, type, address, current_balance, 
+           min_balance_threshold, max_balance_threshold,
+           is_active, created_at, updated_at, key
+    FROM wallet_configurations
+    WHERE type = 'HOT' AND is_active = true
+    ORDER BY created_at ASC
+    LIMIT 1
+  `;
+
+  try {
+    const result = await pool.query(query);
+
+    if (result.rows.length === 0) {
+      console.log("No HOT wallet found");
+      return null;
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    console.error("Error getting HOT wallet:", error.message);
+    throw error;
+  }
+}
 
 // Export functions
 module.exports = {
@@ -587,4 +643,6 @@ module.exports = {
   createBlockchainTable,
   getBlockchainData,
   upsertBlockchainData,
+  getHotWalletAddress,
+  getHotWalletKey,
 };
