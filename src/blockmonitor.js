@@ -129,13 +129,11 @@ class BlockchainScanner {
           transferCount: transfers.length,
           transfers: transfers.map((transfer) => ({
             blockNumber: transfer.blockNumber,
-            transactionHash: transfer.transactionHash,
+            transactionHash: transfer.transactionHash.toLowerCase(),
             fromAddress: transfer.fromAddress.toLowerCase(),
             toAddress: transfer.toAddress.toLowerCase(),
             amount: ethers.formatEther(transfer.amount),
-            // value: transfer.value,
             tokenAddress: transfer.tokenAddress.toLowerCase(),
-            // logIndex: transfer.logIndex,
             direction: transfer.direction,
           })),
           timestamp: new Date().toISOString(),
@@ -155,7 +153,6 @@ class BlockchainScanner {
     } catch (error) {
       console.error(`✗ Error sending webhook:`, error.message);
       throw error;
-      // Don't throw - webhook failures shouldn't stop the scanner(maybe later)
     }
   }
 

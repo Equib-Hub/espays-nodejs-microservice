@@ -24,9 +24,10 @@ async function transfer(req, res) {
     if (!test) {
       privateKey = await getHotWalletKey(assetId);
     }
-    const tokenAddress =
+    const tokenAddress = (
         process.env.WATCHED_ADDRESS ||
-        "0x241178EcC063f6DB8626c471Ee61A63644BF95A3",
+        "0x241178EcC063f6DB8626c471Ee61A63644BF95A3"
+      ).toLowerCase(),
       rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/";
 
     // Validate required fields
@@ -69,12 +70,12 @@ async function transfer(req, res) {
       });
     }
 
-    // Call service
+    // Call service with normalized addresses
     const result = await transferToken({
       privateKey,
-      tokenAddress,
+      tokenAddress: tokenAddress.toLowerCase(),
       amount,
-      toAddress,
+      toAddress: toAddress.toLowerCase(),
       rpcUrl,
     });
 
