@@ -63,6 +63,7 @@ jobs:
           POLLING_INTERVAL=${{ vars.POLLING_INTERVAL }}
           WEBHOOK_URL=${{ vars.WEBHOOK_URL }}
           BLOCKCHAIN_MONITOR_TEST=${{ vars.BLOCKCHAIN_MONITOR_TEST }}
+          DEFAULT_ASSET_ID=${{ vars.DEFAULT_ASSET_ID }}
           ENVEOF
           
           echo "=== Environment file created ==="
@@ -70,57 +71,67 @@ jobs:
           echo "=== Installing Dependencies ==="
           npm ci --production --legacy-peer-deps || npm install --production --legacy-peer-deps
           
-          echo "=== Verifying app.js exists ==="
+          echo "=== Verifying required files exist ==="
           if [ ! -f "src/app.js" ]; then
             echo "ERROR: src/app.js not found!"
             exit 1
           fi
           
-          echo "=== Setting up default api PM2 ecosystem config ==="
+          if [ ! -f "src/blockmonitor.js" ]; then
+            echo "ERROR: src/blockmonitor.js not found!"
+            exit 1
+          fi
+          
+          echo "=== Setting up PM2 ecosystem config for both API and Monitor ==="
           cat > ecosystem.config.js << 'EOF'
           module.exports = {
-            apps: [{
-              name: 'espays-microservices',
-              script: 'src/app.js',
-              instances: 'max',
-              exec_mode: 'cluster',
-              env: {
-                NODE_ENV: 'production',
-                PORT: 3000
+            apps: [
+              {
+                name: 'espays-api',
+                script: 'src/app.js',
+                instances: 2,
+                exec_mode: 'cluster',
+                env: {
+                  NODE_ENV: 'production',
+                  PORT: 3000
+                },
+                error_file: 'logs/api-error.log',
+                out_file: 'logs/api-out.log',
+                log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+                merge_logs: true,
+                autorestart: true,
+                max_restarts: 10,
+                min_uptime: '10s'
               },
-              error_file: 'logs/pm2-error.log',
-              out_file: 'logs/pm2-out.log',
-              log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-              merge_logs: true
-            }]
-          };
-          EOF
-
-          echo "=== Setting up default blockmonitor PM2 ecosystem config ==="
-          cat > ecosystem.config.js << 'EOF'
-          module.exports = {
-            apps: [{
-              name: 'espays-blockmonitor',
-              script: 'src/blockmonitor.js',
-              instances: 'max',
-              exec_mode: 'cluster',
-              env: {
-                NODE_ENV: 'production',
-                PORT: 3001
-              },
-              error_file: 'logs/pm2-error.log',
-              out_file: 'logs/pm2-out.log',
-              log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-              merge_logs: true
-            }]
+              {
+                name: 'espays-blockmonitor',
+                script: 'src/blockmonitor.js',
+                instances: 1,
+                exec_mode: 'fork',
+                env: {
+                  NODE_ENV: 'production'
+                },
+                error_file: 'logs/monitor-error.log',
+                out_file: 'logs/monitor-out.log',
+                log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+                autorestart: true,
+                max_restarts: 10,
+                min_uptime: '10s',
+                restart_delay: 5000
+              }
+            ]
           };
           EOF
           
           echo "=== Creating logs directory ==="
           mkdir -p logs
           
-          echo "=== Restarting Application with PM2 ==="
+          echo "=== Stopping existing PM2 processes ==="
+          pm2 delete espays-api 2>/dev/null || true
+          pm2 delete espays-blockmonitor 2>/dev/null || true
           pm2 delete espays-microservices 2>/dev/null || true
+          
+          echo "=== Starting both API and BlockMonitor with PM2 ==="
           pm2 start ecosystem.config.js
           pm2 save
           
@@ -133,5 +144,8 @@ jobs:
           echo "=== PM2 Status ==="
           pm2 list
           echo ""
-          echo "=== Recent Logs ==="
-          pm2 logs espays-microservices --lines 20 --nostream
+          echo "=== Recent API Logs ==="
+          pm2 logs espays-api --lines 10 --nostream
+          echo ""
+          echo "=== Recent BlockMonitor Logs ==="
+          pm2 logs espays-blockmonitor --lines 10 --nostream

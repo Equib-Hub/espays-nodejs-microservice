@@ -282,7 +282,7 @@ class BlockchainScanner {
       if (transfers.length > 0) {
         // Get all unique addresses from transfers
         const allAddresses = new Set();
-        allAddresses.add(this.howWalletAddress);
+        allAddresses.add(this.hotWalletAddress);
         transfers.forEach((transfer) => {
           // allAddresses.add(transfer.fromAddress.toLowerCase());
           allAddresses.add(transfer.toAddress.toLowerCase());
