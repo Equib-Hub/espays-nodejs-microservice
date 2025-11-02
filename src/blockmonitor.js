@@ -227,6 +227,8 @@ class BlockchainScanner {
           if (!monitoredAddresses.includes(this.hotWalletAddress)) {
             monitoredAddresses.push(this.hotWalletAddress);
           }
+          
+          console.log(`Loaded ${monitoredAddresses.length} wallet addresses from database`);
         }
       } finally {
         client.release();
