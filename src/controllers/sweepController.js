@@ -11,6 +11,7 @@ require("dotenv").config();
  * POST /api/sweep
  * Body: {
  *   userIds: string[],
+ *   assetId: string,
  *   test: boolean(optional)
  * }
  */
