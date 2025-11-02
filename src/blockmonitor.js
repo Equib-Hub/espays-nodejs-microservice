@@ -194,156 +194,164 @@ class BlockchainScanner {
   }
 
   async processBlock(blockNumber) {
-    console.log(`Processing block ${blockNumber}...`);
+    console.log(`Processing blocks ${blockNumber}...`);
+    
+    // This will be filled with fromBlock and toBlock for batch processing
+    return [];
+  }
 
-    // Get block with transactions
-    const block = await this.provider.getBlock(blockNumber, true);
+  async processBlockRange(fromBlock, toBlock) {
+    console.log(`Processing block range ${fromBlock} - ${toBlock}...`);
 
-    if (!block || !block.transactions) {
-      console.log(`Block ${blockNumber} has no transactions`);
-      return [];
-    }
-
-    const transfers = [];
-
-    // Filter transactions sent to watched addresses
-    for (const txHash of block.transactions) {
+    try {
+      // Get all wallet addresses from database that we need to monitor
+      const client = await pool.connect();
+      let monitoredAddresses = [];
+      
       try {
-        const tx = await this.provider.getTransaction(txHash);
-
-        if (!tx || !tx.to) continue;
-
-        const toAddress = tx.to.toLowerCase();
-
-        // Check if transaction is sent to a watched address
-        if (CONFIG.WATCHED_ADDRESS === toAddress) {
-          const receipt = await this.provider.getTransactionReceipt(txHash);
-
-          if (receipt && receipt.logs) {
-            // Extract ERC20 transfer events
-            for (const log of receipt.logs) {
-              if (
-                log.topics[0] === ERC20_TRANSFER_TOPIC &&
-                log.topics.length >= 3
-              ) {
-                try {
-                  // Decode transfer event
-                  // topics[1] = from address (padded)
-                  // topics[2] = to address (padded)
-                  // data = amount
-                  const fromAddress = ethers.getAddress(
-                    "0x" + log.topics[1].slice(26)
-                  );
-                  const toAddress = ethers.getAddress(
-                    "0x" + log.topics[2].slice(26)
-                  );
-                  const amount = ethers.getBigInt(log.data).toString();
-                  const value = tx.value.toString();
-
-                  transfers.push({
-                    blockNumber,
-                    transactionHash: txHash,
-                    fromAddress,
-                    toAddress,
-                    amount,
-                    value,
-                    tokenAddress: log.address.toLowerCase(),
-                    logIndex: log.index,
-                  });
-                } catch (decodeError) {
-                  console.error(
-                    `Error decoding transfer event in tx ${txHash}:`,
-                    decodeError.message
-                  );
-                }
-              }
-            }
+        if (CONFIG.BLOCKCHAIN_MONITOR_TEST) {
+          // In test mode, monitor hot wallet only
+          monitoredAddresses = [this.hotWalletAddress];
+        } else {
+          // Get all active wallet addresses from database
+          const walletQuery = `
+            SELECT DISTINCT LOWER(address) as address 
+            FROM wallets 
+            WHERE status = 'ACTIVE'
+            LIMIT 1000
+          `;
+          const result = await client.query(walletQuery);
+          monitoredAddresses = result.rows.map(row => row.address);
+          
+          // Add hot wallet if not in list
+          if (!monitoredAddresses.includes(this.hotWalletAddress)) {
+            monitoredAddresses.push(this.hotWalletAddress);
           }
         }
-      } catch (txError) {
-        console.error(
-          `Error processing transaction ${txHash}:`,
-          txError.message
-        );
+      } finally {
+        client.release();
       }
-    }
 
-    console.log(
-      `Found ${transfers.length} ERC20 transfers in block ${blockNumber}`
-    );
-    return transfers;
+      if (monitoredAddresses.length === 0) {
+        console.log('No addresses to monitor');
+        return [];
+      }
+
+      console.log(`Monitoring ${monitoredAddresses.length} wallet addresses`);
+
+      // Use eth_getLogs to get Transfer events involving our wallets
+      // Transfer event signature: Transfer(address indexed from, address indexed to, uint256 value)
+      const transfers = [];
+      
+      // We need to query in batches because too many addresses can exceed RPC limits
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < monitoredAddresses.length; i += BATCH_SIZE) {
+        const addressBatch = monitoredAddresses.slice(i, i + BATCH_SIZE);
+        
+        // Pad addresses to 32 bytes for topic filtering
+        const paddedAddresses = addressBatch.map(addr => 
+          '0x' + addr.slice(2).padStart(64, '0')
+        );
+
+        // Query 1: Get transfers FROM our wallets (withdrawals)
+        const logsFrom = await this.provider.getLogs({
+          fromBlock: fromBlock,
+          toBlock: toBlock,
+          address: CONFIG.WATCHED_ADDRESS, // The token contract
+          topics: [
+            ERC20_TRANSFER_TOPIC, // Transfer event
+            paddedAddresses, // from addresses (our wallets)
+            null // to any address
+          ]
+        });
+
+        // Query 2: Get transfers TO our wallets (deposits)
+        const logsTo = await this.provider.getLogs({
+          fromBlock: fromBlock,
+          toBlock: toBlock,
+          address: CONFIG.WATCHED_ADDRESS, // The token contract
+          topics: [
+            ERC20_TRANSFER_TOPIC, // Transfer event
+            null, // from any address
+            paddedAddresses // to addresses (our wallets)
+          ]
+        });
+
+        // Combine and deduplicate logs
+        const allLogs = [...logsFrom, ...logsTo];
+        const uniqueLogs = Array.from(
+          new Map(allLogs.map(log => [log.transactionHash + log.logIndex, log])).values()
+        );
+
+        // Process each log
+        for (const log of uniqueLogs) {
+          try {
+            const fromAddress = ethers.getAddress('0x' + log.topics[1].slice(26));
+            const toAddress = ethers.getAddress('0x' + log.topics[2].slice(26));
+            const amount = ethers.getBigInt(log.data).toString();
+
+            // Get transaction to get the value (ETH sent)
+            const tx = await this.provider.getTransaction(log.transactionHash);
+            const value = tx ? tx.value.toString() : '0';
+
+            transfers.push({
+              blockNumber: log.blockNumber,
+              transactionHash: log.transactionHash,
+              fromAddress,
+              toAddress,
+              amount,
+              value,
+              tokenAddress: log.address.toLowerCase(),
+              logIndex: log.index,
+            });
+          } catch (decodeError) {
+            console.error(
+              `Error decoding transfer event in tx ${log.transactionHash}:`,
+              decodeError.message
+            );
+          }
+        }
+      }
+
+      console.log(
+        `Found ${transfers.length} ERC20 transfers involving monitored wallets in blocks ${fromBlock}-${toBlock}`
+      );
+      return transfers;
+    } catch (error) {
+      console.error(`Error processing block range ${fromBlock}-${toBlock}:`, error.message);
+      throw error;
+    }
   }
 
   async storeBlockData(startBlock, endBlock, transfers) {
     const client = await pool.connect();
     let relevantTransfers = [];
     try {
-      // Filter transfers to only include those where from or to address exists in wallets table
+      // All transfers are already relevant (we queried for our wallets)
       if (transfers.length > 0) {
-        // Get all unique addresses from transfers
-        const allAddresses = new Set();
-        allAddresses.add(this.hotWalletAddress);
-        transfers.forEach((transfer) => {
-          // allAddresses.add(transfer.fromAddress.toLowerCase());
-          allAddresses.add(transfer.toAddress.toLowerCase());
+        console.log(
+          `\n📋 Block ${startBlock} - ${endBlock} Found ${transfers.length} relevant transfer(s):`
+        );
+        
+        relevantTransfers = transfers.map((transfer) => {
+          const fromWallet = transfer.fromAddress.toLowerCase();
+          const direction =
+            fromWallet === this.hotWalletAddress ? "outgoing" : "incoming";
+          
+          return {
+            ...transfer,
+            direction
+          };
         });
 
-        // Query database to check which addresses exist in wallets table
-        const addressArray = Array.from(allAddresses);
-
-        let walletAddresses;
-        if (CONFIG.BLOCKCHAIN_MONITOR_TEST) {
-          walletAddresses = new Set(addressArray);
-        } else {
-          const placeholders = addressArray.map((_, i) => `${i + 1}`).join(",");
-          const walletQuery = `
-          SELECT LOWER(address) as address 
-          FROM wallets 
-          WHERE LOWER(address) IN (${placeholders})
-          AND status = 'ACTIVE'
-        `;
-
-          const walletResult = await client.query(walletQuery, addressArray);
-          walletAddresses = new Set(
-            walletResult.rows.map((row) => row.address)
-          );
-        }
-
-        // Filter transfers where from or to address exists in wallets
-        relevantTransfers = transfers.filter(
-          (transfer) =>
-            walletAddresses.has(transfer.fromAddress.toLowerCase()) ||
-            walletAddresses.has(transfer.toAddress.toLowerCase())
-        );
-
-        // Log only relevant transfers
-        if (relevantTransfers.length > 0) {
-          console.log(
-            `\n📋 Block ${startBlock} - ${endBlock} Found ${relevantTransfers.length} relevant transfer(s):`
-          );
-          relevantTransfers.forEach((transfer, index) => {
-            const fromWallet = transfer.fromAddress.toLowerCase();
-            const direction =
-              fromWallet === this.hotWalletAddress ? "outgoing" : "incoming";
-
-            transfer.direction = direction;
-
-            // console.log(`\n  ${direction} Transfer #${index + 1}:`);
-            // console.log(`    Transaction Hash: ${transfer.transactionHash}`);
-            // console.log(
-            //   `    From: ${transfer.fromAddress}${fromInWallet ? " ✓" : ""}`
-            // );
-            // console.log(
-            //   `    To: ${transfer.toAddress}${toInWallet ? " ✓" : ""}`
-            // );
-            // console.log(`    Amount: ${transfer.amount}`);
-            // console.log(`    ETH Value: ${transfer.value}`);
-            // console.log(`    Token Address: ${transfer.tokenAddress}`);
-          });
-          // console.log("");
-        } else {
-          console.log(`No transfers involving tracked wallets`);
-        }
+        // Log sample of transfers (not all to avoid spam)
+        const sampleSize = Math.min(5, relevantTransfers.length);
+        console.log(`Showing ${sampleSize} of ${relevantTransfers.length} transfers:`);
+        relevantTransfers.slice(0, sampleSize).forEach((transfer, index) => {
+          console.log(`  ${index + 1}. ${transfer.direction.toUpperCase()}: ${transfer.fromAddress.slice(0, 10)}... -> ${transfer.toAddress.slice(0, 10)}... (${ethers.formatEther(transfer.amount)} tokens)`);
+        });
+      } else {
+        console.log(`No transfers involving tracked wallets`);
       }
 
       await this.sendWebhook(relevantTransfers, startBlock, endBlock);
@@ -405,27 +413,14 @@ class BlockchainScanner {
       );
 
       let transferEvents = [];
-      for (
-        let blockNumber = currentBlock;
-        blockNumber <= endBlock;
-        blockNumber++
-      ) {
-        if (!this.isRunning) {
-          console.log("Scanner stopped");
-          break;
-        }
-
-        try {
-          const transfers = await this.processBlock(blockNumber);
-          transferEvents = transferEvents.concat(transfers);
-        } catch (error) {
-          console.error(
-            `Error processing block ${blockNumber}:`,
-            error.message
-          );
-          // Don't continue on error - will retry on next scan
-          break;
-        }
+      try {
+        transferEvents = await this.processBlockRange(currentBlock, endBlock);
+      } catch (error) {
+        console.error(
+          `Error processing block range ${currentBlock}-${endBlock}:`,
+          error.message
+        );
+        // Don't continue on error - will retry on next scan
       }
 
       await this.storeBlockData(currentBlock, endBlock, transferEvents);
