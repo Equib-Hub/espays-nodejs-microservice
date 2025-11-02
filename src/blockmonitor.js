@@ -4,7 +4,7 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const { Pool } = require("pg");
-const { getHotWalletAddress } = require("./utils/helpers");
+const { getHotWalletAddress, getAssetIdByAddress } = require("./utils/helpers");
 
 // Database connection pool
 
@@ -67,7 +67,9 @@ initializeDatabase()
 const CONFIG = {
   RPC_URL: process.env.TORONET_RPC || "https://toronet.org/rpc/",
   STARTING_BLOCK: parseInt(process.env.STARTING_BLOCK) || 24541889,
-  WATCHED_ADDRESS: process.env.WATCHED_ADDRESS.toLowerCase(),
+  WATCHED_ADDRESS: process.env.WATCHED_ADDRESS?.toLowerCase() || (() => {
+    throw new Error('WATCHED_ADDRESS is required in .env file');
+  })(),
   SCAN_BATCH_SIZE: parseInt(process.env.SCAN_BATCH_SIZE) || 300,
   POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL) || 30000, // ms
   WEBHOOK_URL: process.env.WEBHOOK_URL,
@@ -87,12 +89,17 @@ class BlockchainScanner {
   async initialize() {
     console.log("Initializing blockchain scanner...");
     console.log(`Watching address: ${CONFIG.WATCHED_ADDRESS}`);
+    let assetId = await getAssetIdByAddress(CONFIG.WATCHED_ADDRESS);
+    
+    if (!assetId) {
+      throw new Error("No asset id for watched address");
+    }
 
-    let hotWallet = await getHotWalletAddress();
+    let hotWallet = await getHotWalletAddress(assetId);
 
     if (!hotWallet) throw new Error("No hot wallet address");
 
-    this.howWalletAddress = hotWallet.toLowerCase();
+    this.hotWalletAddress = hotWallet.toLowerCase();
     // Test database connection
     try {
       const client = await pool.connect();
@@ -317,7 +324,7 @@ class BlockchainScanner {
           relevantTransfers.forEach((transfer, index) => {
             const fromWallet = transfer.fromAddress.toLowerCase();
             const direction =
-              fromWallet === this.hotWallet ? "outgoing" : "incoming";
+              fromWallet === this.hotWalletAddress ? "outgoing" : "incoming";
 
             transfer.direction = direction;
 

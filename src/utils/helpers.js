@@ -574,6 +574,32 @@ async function getHotWalletAddress(assetId) {
   }
 }
 
+async function getAssetIdByAddress(address) {
+  if (!address) {
+    throw new Error("No address provided");
+  }
+
+  const query = `
+    SELECT id
+    FROM assets
+    WHERE contract_address = $1
+    LIMIT 1
+  `;
+
+  try {
+    const result = await pool.query(query, [address]);
+    
+    if (result.rows.length === 0) {
+      console.log("No asset id found for address");
+      return null;
+    }
+
+    return result.rows[0].id;
+  } catch (error) {
+    console.error("Error getting asset id by address:", error.message);
+    throw error;
+  }
+}
 /**
  * Gets the first HOT wallet key
  * @returns {Promise<string|null>} The key or null if not found
@@ -645,4 +671,5 @@ module.exports = {
   upsertBlockchainData,
   getHotWalletAddress,
   getHotWalletKey,
+  getAssetIdByAddress
 };
