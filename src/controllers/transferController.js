@@ -36,7 +36,7 @@ async function transfer(req, res) {
       }
 
       // Access the first wallet's private key
-      privateKey = decryptString(queryResult.wallets[0].privateKey);
+      privateKey = decryptString(queryResult.wallets[0].key);
     }
 
     // Validate required fields

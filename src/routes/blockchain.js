@@ -90,35 +90,30 @@ router.post('/transfer', transfer);
  *           schema:
  *             type: object
  *             required:
- *               - blockchain
- *               - sourceWallets
- *               - destinationAddress
+ *               - userIds
+ *               - tokenAddress
+ *               - minBalance
+ *               - hotWalletAddress
+ *               - rpcUrl
  *             properties:
- *               blockchain:
- *                 type: string
- *                 enum: [bitcoin, ethereum, solana, ton, cosmos, polkadot, tezos, algorand, stellar]
- *                 description: The blockchain network to use
- *                 example: ethereum
- *               sourceWallets:
+ *               userIds:
  *                 type: array
- *                 description: Array of source wallet addresses with their private keys
+ *                 description: Array of user IDs whose wallets will be swept
  *                 items:
- *                   type: object
- *                   properties:
- *                     address:
- *                       type: string
- *                     privateKey:
- *                       type: string
- *               destinationAddress:
- *                 type: string
- *                 description: Hot wallet address to receive all funds
- *                 example: "0x8ba1f109551bD432803012645Ac136ddd64DBA72"
- *               minAmount:
- *                 type: string
- *                 description: Minimum balance required to trigger sweep
+ *                   type: string
+ *                 example: ["user-id-123", "user-id-456", "user-id-789"]
  *               tokenAddress:
  *                 type: string
- *                 description: Token contract address (for token sweeps)
+ *                 description: ERC20 token contract address
+ *                 example: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+ *               minBalance:
+ *                 type: string
+ *                 description: Minimum balance required to trigger sweep (in token units)
+ *                 example: "10"
+ *               rpcUrl:
+ *                 type: string
+ *                 description: Blockchain RPC URL
+ *                 example: "https://toronet.org/rpc/"
  *     responses:
  *       200:
  *         description: Sweep operation completed

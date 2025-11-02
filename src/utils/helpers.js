@@ -395,26 +395,44 @@ async function getWalletsByUserId(userId) {
 
 
 /**
- * Encrypts a string using AES-GCM with a password-derived key
+ * Encrypts a string using AES with a generated or provided salt
  * @param {string} text - The text to encrypt
- * @param {string} salt - The salt/password to use for encryption (optional, falls back to ENCRYPTION_SALT from .env)
- * @returns {Promise<string>} Base64 encoded encrypted data with IV
+ * @param {string} salt - Optional salt to use for encryption (if not provided, generates a new 509-character salt)
+ * @returns {Object} Object containing encryptedKey and salt
  */
 function encryptString(text, salt) {
   try {
     if (typeof text === "object") {
       text = text.join(" ");
     }
-    // Use provided salt or fall back to environment variable
-    const encryptionSalt = salt || process.env.ENCRYPTION_SALT;
+    
+    // Generate a 509 character super strong salt if not provided
+    const encryptionSalt = salt || process.env.ENCRYPTION_SALT || (() => {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+      let generatedSalt = '';
+      const crypto = require('crypto');
+      const randomBytes = crypto.randomBytes(509);
+      
+      for (let i = 0; i < 509; i++) {
+        generatedSalt += characters.charAt(randomBytes[i] % characters.length);
+      }
+      
+      return generatedSalt;
+    })();
+    
     if (!encryptionSalt) {
       throw new Error(
         "Salt is required. Provide a salt parameter or set ENCRYPTION_SALT in .env file"
       );
     }
-    // Convert to base64
+    
+    // Encrypt the text
     const encryptedText = CryptoJS.AES.encrypt(text, encryptionSalt);
-    return encryptedText.toString();
+    
+    return {
+      encryptedKey: encryptedText.toString(),
+      salt: encryptionSalt
+    };
   } catch (error) {
     throw error;
   }
