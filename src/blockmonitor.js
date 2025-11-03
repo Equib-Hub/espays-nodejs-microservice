@@ -384,9 +384,18 @@ class BlockchainScanner {
             AND compatibility_id = $1
             LIMIT 1000
           `;
-          const result = await client.query(walletQuery, [this.hotWalletAddress]);
-          console.log("wallets query: ", result);
-          userWallets.push(...result.rows.map(row => row.address));
+          
+          console.log(`Executing wallet query: ${walletQuery}`);
+          const result = await client.query(walletQuery, [compatibilityId]);
+          console.log(`Query returned ${result.rows.length} rows`);
+          
+          if (result.rows.length === 0) {
+            console.warn('⚠️  WARNING: No wallets found in database!');
+            console.warn('⚠️  Check if wallets table has data or if column name is correct');
+          } else {
+            console.log(`Sample of first 3 addresses:`, result.rows.slice(0, 3));
+          }
+          userWallets = result.rows.map(row => row.address);
         }
         
         
