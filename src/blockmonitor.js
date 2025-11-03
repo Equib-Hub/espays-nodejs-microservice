@@ -217,17 +217,33 @@ class BlockchainScanner {
             WHERE address IS NOT NULL
             LIMIT 1000
           `;
+          
+          console.log(`Executing wallet query: ${walletQuery}`);
           const result = await client.query(walletQuery);
+          console.log(`Query returned ${result.rows.length} rows`);
+          
+          if (result.rows.length === 0) {
+            console.warn('⚠️  WARNING: No wallets found in database!');
+            console.warn('⚠️  Check if wallets table has data or if column name is correct');
+          } else {
+            console.log(`Sample of first 3 addresses:`, result.rows.slice(0, 3));
+          }
+          
           monitoredAddresses = result.rows.map(row => row.address);
           
           // Add hot wallet if not in list
           if (!monitoredAddresses.includes(this.hotWalletAddress)) {
             monitoredAddresses.push(this.hotWalletAddress);
+            console.log(`Added hot wallet to monitored list: ${this.hotWalletAddress}`);
           }
           console.log(`Loaded addresses: `, monitoredAddresses);
           
           console.log(`Loaded ${monitoredAddresses.length} wallet addresses from database`);
         }
+      } catch (queryError) {
+        console.error('❌ Database query error:', queryError.message);
+        console.error('Full error:', queryError);
+        throw queryError;
       } finally {
         client.release();
       }
