@@ -600,6 +600,60 @@ async function getAssetIdByAddress(address) {
     throw error;
   }
 }
+
+async function getNetworkIdByAddress(address) {
+  if (!address) {
+    throw new Error("No address provided");
+  }
+
+  const query = `
+    SELECT network_id
+    FROM assets
+    WHERE contract_address = $1
+    LIMIT 1
+  `;
+
+  try {
+    const result = await pool.query(query, [address]);
+    
+    if (result.rows.length === 0) {
+      console.log("No network id found for address");
+      return null;
+    }
+
+    return result.rows[0].network_id;
+  } catch (error) {
+    console.error("Error getting network id by address:", error.message);
+    throw error;
+  }
+}
+
+async function getCompatibilityIdByNetworkId(networkId) {
+  if (!networkId) {
+    throw new Error("No network id provided");
+  }
+
+  const query = `
+    SELECT compatibility_id
+    FROM networks
+    WHERE network_id = $1
+    LIMIT 1
+  `;
+
+  try {
+    const result = await pool.query(query, [networkId]);
+    
+    if (result.rows.length === 0) {
+      console.log("No compatibility id found for network id");
+      return null;
+    }
+
+    return result.rows[0].compatibility_id;
+  } catch (error) {
+    console.error("Error getting compatibility id by network id:", error.message);
+    throw error;
+  }
+}
 /**
  * Gets the first HOT wallet key
  * @returns {Promise<string|null>} The key or null if not found
@@ -671,5 +725,7 @@ module.exports = {
   upsertBlockchainData,
   getHotWalletAddress,
   getHotWalletKey,
-  getAssetIdByAddress
+  getAssetIdByAddress,
+  getNetworkIdByAddress,
+  getCompatibilityIdByNetworkId
 };

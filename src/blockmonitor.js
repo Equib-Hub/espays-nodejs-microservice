@@ -4,7 +4,7 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const { Pool } = require("pg");
-const { getHotWalletAddress, getAssetIdByAddress } = require("./utils/helpers");
+const { getHotWalletAddress, getAssetIdByAddress, getNetworkIdByAddress, getCompatibilityIdByNetworkId } = require("./utils/helpers");
 
 // Database connection pool
 
@@ -212,17 +212,26 @@ class BlockchainScanner {
           console.log(`Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`);
         } else {
           console.log('Live mode about querying from db');
-          // Get all wallet addresses from database (no status filter)
+          const networkId = await getNetworkIdByAddress(CONFIG.WATCHED_ADDRESS);
+          const compatibilityId = await getCompatibilityIdByNetworkId(networkId);
+          console.log(`Compatibility ID: ${compatibilityId}`);
+          
+          if (!compatibilityId) {
+            console.warn('⚠️  WARNING: No compatibility ID found for the network ID');
+            return [];
+          }
+
           const walletQuery = `
             SELECT DISTINCT LOWER(address) as address 
             FROM wallets 
             WHERE address IS NOT NULL
             AND status = 'ACTIVE'
+            AND compatibility_id = $1
             LIMIT 1000
           `;
           
           console.log(`Executing wallet query: ${walletQuery}`);
-          const result = await client.query(walletQuery);
+          const result = await client.query(walletQuery, [compatibilityId]);
           console.log(`Query returned ${result.rows.length} rows`);
           
           if (result.rows.length === 0) {
