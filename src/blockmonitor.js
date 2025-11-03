@@ -129,11 +129,11 @@ class BlockchainScanner {
           transferCount: transfers.length,
           transfers: transfers.map((transfer) => ({
             blockNumber: transfer.blockNumber,
-            transactionHash: transfer.transactionHash.toLowerCase(),
-            fromAddress: transfer.fromAddress.toLowerCase(),
-            toAddress: transfer.toAddress.toLowerCase(),
+            transactionHash: transfer.transactionHash,
+            fromAddress: transfer.fromAddress,
+            toAddress: transfer.toAddress,
             amount: ethers.formatEther(transfer.amount),
-            tokenAddress: transfer.tokenAddress.toLowerCase(),
+            tokenAddress: transfer.tokenAddress,
             direction: transfer.direction,
           })),
           timestamp: new Date().toISOString(),
@@ -351,11 +351,12 @@ class BlockchainScanner {
         relevantTransfers.slice(0, sampleSize).forEach((transfer, index) => {
           console.log(`  ${index + 1}. ${transfer.direction.toUpperCase()}: ${transfer.fromAddress.slice(0, 10)}... -> ${transfer.toAddress.slice(0, 10)}... (${ethers.formatEther(transfer.amount)} tokens)`);
         });
+
+        // Only send webhook if there are transfers
+        await this.sendWebhook(relevantTransfers, startBlock, endBlock);
       } else {
         console.log(`No transfers involving tracked wallets`);
       }
-
-      await this.sendWebhook(relevantTransfers, startBlock, endBlock);
 
       // Start transaction
       await client.query("BEGIN");
@@ -372,7 +373,7 @@ class BlockchainScanner {
 
       await client.query(updateBlockQuery, [
         "last_processed_block",
-        JSON.stringify({ blockNumber: endBlock }), //24541908
+        JSON.stringify({ blockNumber: endBlock }),
       ]);
 
       // Commit transaction

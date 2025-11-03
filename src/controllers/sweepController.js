@@ -23,13 +23,12 @@ async function sweep(req, res) {
       throw new Error("No asset id");
     }
 
-    const tokenAddress = (
+    const tokenAddress =
         process.env.WATCHED_ADDRESS ||
-        "0x241178EcC063f6DB8626c471Ee61A63644BF95A3"
-      ).toLowerCase(),
+        "0x241178EcC063f6DB8626c471Ee61A63644BF95A3",
       rpcUrl = process.env.TORONET_RPC || "https://toronet.org/rpc/";
 
-    const hotWalletAddress = (await getHotWalletAddress(assetId))?.toLowerCase();
+    const hotWalletAddress = await getHotWalletAddress(assetId);
 
     if (!hotWalletAddress) {
       throw new Error("No hotwallet address");
@@ -86,11 +85,11 @@ async function sweep(req, res) {
       });
     }
 
-    // Call service with normalized addresses
+    // Call service
     const result = await sweepTokens({
       privateKeys,
-      tokenAddress: tokenAddress.toLowerCase(),
-      hotWalletAddress: hotWalletAddress.toLowerCase(),
+      tokenAddress,
+      hotWalletAddress,
       rpcUrl,
     });
 

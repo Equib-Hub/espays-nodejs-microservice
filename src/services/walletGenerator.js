@@ -25,13 +25,13 @@ async function generateWallet(mnemonic) {
   const contract = client.open(wallet);
   const tonPublicKey = keyPair.secretKey.toString('hex');
   const tonPrivateKey = keyPair.publicKey.toString('hex');
-  const tonAddress = contract.address.toString().toLowerCase();
+  const tonAddress = contract.address.toString();
 
   // Ethereum Wallet
   const hdNode = ethers.HDNodeWallet.fromMnemonic(ethers.Mnemonic.fromPhrase(mnemonic));
   const ethWallet = new ethers.Wallet(hdNode.privateKey);
   const ethPrivateKey = ethWallet.privateKey;
-  const ethAddress = ethWallet.address.toLowerCase();
+  const ethAddress = ethWallet.address;
 
   // Bitcoin Wallet
   const root = bip32.BIP32Factory(ecc).fromSeed(seed);
@@ -41,13 +41,12 @@ async function generateWallet(mnemonic) {
     pubkey: Buffer.from(btcNode.publicKey),
     network: bitcoin.networks.bitcoin,
   });
-  const btcAddressLower = btcAddress.toLowerCase();
 
   // Solana Wallet
   const solSeed = seed.slice(0, 32);
   const solKeypair = solanaWeb3.Keypair.fromSeed(solSeed);
   const solPrivateKey = Buffer.from(solKeypair.secretKey).toString('hex');
-  const solAddress = solKeypair.publicKey.toBase58().toLowerCase();
+  const solAddress = solKeypair.publicKey.toBase58();
 
   // Cosmos Wallet
   const cosmosHdPath = [
@@ -63,37 +62,36 @@ async function generateWallet(mnemonic) {
   });
   const [{ address: cosmosAddress, privkey: cosmosPrivateKeyRaw }] = await cosmosWallet.getAccountsWithPrivkeys();
   const cosmosPrivateKey = Buffer.from(cosmosPrivateKeyRaw).toString('hex');
-  const cosmosAddressLower = cosmosAddress.toLowerCase();
 
   // Polkadot Wallet
   const keyring = new Keyring({ type: 'sr25519', ss58Format: 0 });
   const polkadotSeed = mnemonicToMiniSecret(mnemonic);
   const { publicKey, secretKey } = sr25519PairFromSeed(polkadotSeed);
-  const polkadotAddress = keyring.encodeAddress(publicKey).toLowerCase();
+  const polkadotAddress = keyring.encodeAddress(publicKey);
   const polkadotPrivateKey = Buffer.from(secretKey).toString('hex');
 
   // Algorand Wallet
   const algorandAccount = algosdk.generateAccount();
-  const algorandAddress = algorandAccount.addr.toString().toLowerCase();
+  const algorandAddress = algorandAccount.addr.toString();
   const algorandPrivateKey = Buffer.from(algorandAccount.sk).toString('hex');
   const algorandMnemonic = algosdk.secretKeyToMnemonic(algorandAccount.sk);
 
   // Tezos Wallet
   const signer = await InMemorySigner.fromMnemonic({ mnemonic });
-  const tezosAddress = (await signer.publicKeyHash()).toLowerCase();
+  const tezosAddress = await signer.publicKeyHash();
   const tezosPrivateKey = await signer.secretKey();
 
   // Stellar Wallet
   const stellarWallet = StellarHDWallet.default.fromSeed(seed);
-  const stellarAddress = stellarWallet.getPublicKey(0).toLowerCase();
+  const stellarAddress = stellarWallet.getPublicKey(0);
   const stellarPrivateKey = stellarWallet.getSecret(0);
 
   return {
     ethereum: { address: ethAddress, privateKey: ethPrivateKey },
-    bitcoin: { address: btcAddressLower, privateKey: btcPrivateKey },
+    bitcoin: { address: btcAddress, privateKey: btcPrivateKey },
     solana: { address: solAddress, privateKey: solPrivateKey },
     ton: { address: tonAddress, publicKey: tonPublicKey, privateKey: tonPrivateKey },
-    cosmos: { address: cosmosAddressLower, privateKey: cosmosPrivateKey },
+    cosmos: { address: cosmosAddress, privateKey: cosmosPrivateKey },
     polkadot: { address: polkadotAddress, privateKey: polkadotPrivateKey },
     algorand: { address: algorandAddress, privateKey: algorandPrivateKey, mnemonic: algorandMnemonic },
     tezos: { address: tezosAddress, privateKey: tezosPrivateKey },
