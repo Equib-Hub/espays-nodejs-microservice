@@ -217,7 +217,7 @@ class BlockchainScanner {
             SELECT DISTINCT LOWER(address) as address 
             FROM wallets 
             WHERE address IS NOT NULL
-            WHERE status = 'ACTIVE'
+            AND status = 'ACTIVE'
             LIMIT 1000
           `;
           
