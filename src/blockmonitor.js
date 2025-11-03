@@ -226,6 +226,7 @@ class BlockchainScanner {
           }
           
           console.log(`Loaded ${monitoredAddresses.length} wallet addresses from database`);
+          console.log(`Monitored wallets: `, monitoredAddresses);
         }
       } finally {
         client.release();
@@ -237,6 +238,7 @@ class BlockchainScanner {
       }
 
       console.log(this.hotWalletAddress ? `Hot wallet address: ${this.hotWalletAddress}` : 'No hot wallet configured');
+      console.log(`Monitored wallets: `, monitoredAddresses);
       
       console.log(`Monitoring ${monitoredAddresses.length} wallet addresses`);
 
