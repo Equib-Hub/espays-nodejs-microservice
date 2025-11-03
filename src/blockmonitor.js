@@ -367,6 +367,10 @@ class BlockchainScanner {
         // Get user wallets (excluding hot wallet) for direction logic
         const userWallets = [];
         if (CONFIG.BLOCKCHAIN_MONITOR_TEST === true || CONFIG.BLOCKCHAIN_MONITOR_TEST === 'true') {
+          // In test mode, monitor hot wallet only
+          monitoredAddresses = [this.hotWalletAddress];
+          console.log(`Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`);
+        } else {
           const networkId = await getNetworkIdByAddress(CONFIG.WATCHED_ADDRESS);
           const compatibilityId = await getCompatibilityIdByNetworkId(networkId);
           console.log(`Compatibility ID: ${compatibilityId}`);
@@ -384,16 +388,16 @@ class BlockchainScanner {
             AND compatibility_id = $1
             LIMIT 1000
           `;
-          
-          console.log(`Executing wallet query: ${walletQuery}`);
+
+          console.log(`StoreBlockData: Executing wallet query: ${walletQuery}`);
           const result = await client.query(walletQuery, [compatibilityId]);
-          console.log(`Query returned ${result.rows.length} rows`);
+          console.log(`StoreBlockData: Query returned ${result.rows.length} rows`);
           
           if (result.rows.length === 0) {
-            console.warn('⚠️  WARNING: No wallets found in database!');
-            console.warn('⚠️  Check if wallets table has data or if column name is correct');
+            console.warn('StoreBlockData: ⚠️  WARNING: No wallets found in database!');
+            console.warn('StoreBlockData: ⚠️  Check if wallets table has data or if column name is correct');
           } else {
-            console.log(`Sample of first 3 addresses:`, result.rows.slice(0, 3));
+            console.log(`StoreBlockData: Sample of first 3 addresses:`, result.rows.slice(0, 3));
           }
           userWallets = result.rows.map(row => row.address);
         }
@@ -407,6 +411,7 @@ class BlockchainScanner {
           console.log(`  From: ${transfer.fromAddress} -> ${fromWallet}`);
           console.log(`  To: ${transfer.toAddress} -> ${toWallet}`);
           console.log(`  Hot wallet: ${this.hotWalletAddress}`);
+          console.log(`  User wallet count: `, userWallets);
           console.log(`  User wallets count: ${userWallets.length}`);
           console.log(`  Is toWallet in userWallets: ${userWallets.includes(toWallet)}`);
           
