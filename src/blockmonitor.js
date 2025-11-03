@@ -222,7 +222,7 @@ class BlockchainScanner {
           }
 
           const walletQuery = `
-            SELECT DISTINCT LOWER(address) as address 
+            SELECT DISTINCT address as address 
             FROM wallets 
             WHERE address IS NOT NULL
             AND status = 'ACTIVE'
