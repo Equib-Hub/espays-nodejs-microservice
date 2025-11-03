@@ -209,7 +209,9 @@ class BlockchainScanner {
         if (CONFIG.BLOCKCHAIN_MONITOR_TEST) {
           // In test mode, monitor hot wallet only
           monitoredAddresses = [this.hotWalletAddress];
+          console.log(`Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`);
         } else {
+          console.log('Live mode about querying from db');
           // Get all wallet addresses from database (no status filter)
           const walletQuery = `
             SELECT DISTINCT LOWER(address) as address 
