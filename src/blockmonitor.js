@@ -206,7 +206,7 @@ class BlockchainScanner {
       let monitoredAddresses = [];
       console.log('Config.BLOCKCHAIN_MONITOR_TEST:', CONFIG.BLOCKCHAIN_MONITOR_TEST);
       try {
-        if (CONFIG.BLOCKCHAIN_MONITOR_TEST) {
+        if (CONFIG.BLOCKCHAIN_MONITOR_TEST === true || CONFIG.BLOCKCHAIN_MONITOR_TEST === 'true') {
           // In test mode, monitor hot wallet only
           monitoredAddresses = [this.hotWalletAddress];
           console.log(`Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`);
@@ -217,6 +217,7 @@ class BlockchainScanner {
             SELECT DISTINCT LOWER(address) as address 
             FROM wallets 
             WHERE address IS NOT NULL
+            WHERE status = 'ACTIVE'
             LIMIT 1000
           `;
           
