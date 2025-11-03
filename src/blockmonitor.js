@@ -344,6 +344,7 @@ class BlockchainScanner {
             LIMIT 1000
           `;
           const result = await client.query(walletQuery, [this.hotWalletAddress]);
+          console.log("wallets query: ", result);
           userWallets.push(...result.rows.map(row => row.address));
         }
         
@@ -351,16 +352,26 @@ class BlockchainScanner {
           const fromWallet = transfer.fromAddress.toLowerCase();
           const toWallet = transfer.toAddress.toLowerCase();
           
+          console.log(`DEBUG: Transfer ${transfer.transactionHash.slice(0, 10)}...`);
+          console.log(`  From: ${transfer.fromAddress} -> ${fromWallet}`);
+          console.log(`  To: ${transfer.toAddress} -> ${toWallet}`);
+          console.log(`  Hot wallet: ${this.hotWalletAddress}`);
+          console.log(`  User wallets count: ${userWallets.length}`);
+          console.log(`  Is toWallet in userWallets: ${userWallets.includes(toWallet)}`);
+          
           let direction;
           if (fromWallet === this.hotWalletAddress) {
             // Hot wallet is sending - this is outgoing (withdrawal)
             direction = "outgoing";
+            console.log(`  -> Direction: OUTGOING (hot wallet sending)`);
           } else if (userWallets.includes(toWallet) || toWallet === this.hotWalletAddress) {
             // Transfer to user wallet or hot wallet - this is incoming (deposit)
             direction = "incoming";
+            console.log(`  -> Direction: INCOMING (to monitored wallet)`);
           } else {
             // Transfer between user wallets or other scenarios - mark as unknown
             direction = "unknown";
+            console.log(`  -> Direction: UNKNOWN (not to monitored wallet)`);
           }
           
           return {
