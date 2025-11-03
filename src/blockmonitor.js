@@ -204,7 +204,7 @@ class BlockchainScanner {
       // Get all wallet addresses from database that we need to monitor
       const client = await pool.connect();
       let monitoredAddresses = [];
-      
+      console.log('Config.BLOCKCHAIN_MONITOR_TEST:', CONFIG.BLOCKCHAIN_MONITOR_TEST);
       try {
         if (CONFIG.BLOCKCHAIN_MONITOR_TEST) {
           // In test mode, monitor hot wallet only
