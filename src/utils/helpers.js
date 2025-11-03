@@ -396,41 +396,44 @@ async function getWalletsByUserId(userId) {
  * Encrypts a string using AES with a generated or provided salt
  * @param {string} text - The text to encrypt
  * @param {string} salt - Optional salt to use for encryption (if not provided, generates a new 509-character salt)
- * @returns {Object} Object containing encryptedKey and salt
+ * @returns {string} - the encrypted key
  */
 function encryptString(text, salt) {
   try {
     if (typeof text === "object") {
       text = text.join(" ");
     }
-    
+
     // Generate a 509 character super strong salt if not provided
-    const encryptionSalt = salt || process.env.ENCRYPTION_SALT || (() => {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
-      let generatedSalt = '';
-      const crypto = require('crypto');
-      const randomBytes = crypto.randomBytes(509);
-      
-      for (let i = 0; i < 509; i++) {
-        generatedSalt += characters.charAt(randomBytes[i] % characters.length);
-      }
-      
-      return generatedSalt;
-    })();
-    
+    const encryptionSalt =
+      salt ||
+      process.env.ENCRYPTION_SALT ||
+      (() => {
+        const characters =
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+        let generatedSalt = "";
+        const crypto = require("crypto");
+        const randomBytes = crypto.randomBytes(509);
+
+        for (let i = 0; i < 509; i++) {
+          generatedSalt += characters.charAt(
+            randomBytes[i] % characters.length
+          );
+        }
+
+        return generatedSalt;
+      })();
+
     if (!encryptionSalt) {
       throw new Error(
         "Salt is required. Provide a salt parameter or set ENCRYPTION_SALT in .env file"
       );
     }
-    
+
     // Encrypt the text
     const encryptedText = CryptoJS.AES.encrypt(text, encryptionSalt);
-    
-    return {
-      encryptedKey: encryptedText.toString(),
-      salt: encryptionSalt
-    };
+
+    return encryptedText.toString();
   } catch (error) {
     throw error;
   }
@@ -588,7 +591,7 @@ async function getAssetIdByAddress(address) {
 
   try {
     const result = await pool.query(query, [address]);
-    
+
     if (result.rows.length === 0) {
       console.log("No asset id found for address");
       return null;
@@ -615,7 +618,7 @@ async function getNetworkIdByAddress(address) {
 
   try {
     const result = await pool.query(query, [address]);
-    
+
     if (result.rows.length === 0) {
       console.log("No network id found for address");
       return null;
@@ -642,7 +645,7 @@ async function getCompatibilityIdByNetworkId(networkId) {
 
   try {
     const result = await pool.query(query, [networkId]);
-    
+
     if (result.rows.length === 0) {
       console.log("No compatibility id found for network id");
       return null;
@@ -650,7 +653,10 @@ async function getCompatibilityIdByNetworkId(networkId) {
 
     return result.rows[0].compatibility_id;
   } catch (error) {
-    console.error("Error getting compatibility id by network id:", error.message);
+    console.error(
+      "Error getting compatibility id by network id:",
+      error.message
+    );
     throw error;
   }
 }
@@ -727,5 +733,5 @@ module.exports = {
   getHotWalletKey,
   getAssetIdByAddress,
   getNetworkIdByAddress,
-  getCompatibilityIdByNetworkId
+  getCompatibilityIdByNetworkId,
 };
