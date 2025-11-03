@@ -366,17 +366,29 @@ class BlockchainScanner {
         
         // Get user wallets (excluding hot wallet) for direction logic
         const userWallets = [];
-        if (!CONFIG.BLOCKCHAIN_MONITOR_TEST) {
+        if (CONFIG.BLOCKCHAIN_MONITOR_TEST === true || CONFIG.BLOCKCHAIN_MONITOR_TEST === 'true') {
+          const networkId = await getNetworkIdByAddress(CONFIG.WATCHED_ADDRESS);
+          const compatibilityId = await getCompatibilityIdByNetworkId(networkId);
+          console.log(`Compatibility ID: ${compatibilityId}`);
+          
+          if (!compatibilityId) {
+            console.warn('⚠️  WARNING: No compatibility ID found for the network ID');
+            return [];
+          }
+
           const walletQuery = `
-            SELECT DISTINCT LOWER(address) as address 
+            SELECT DISTINCT address as address 
             FROM wallets 
-            WHERE address IS NOT NULL AND LOWER(address) != $1
+            WHERE address IS NOT NULL
+            AND status = 'ACTIVE'
+            AND compatibility_id = $1
             LIMIT 1000
           `;
           const result = await client.query(walletQuery, [this.hotWalletAddress]);
           console.log("wallets query: ", result);
           userWallets.push(...result.rows.map(row => row.address));
         }
+        
         
         relevantTransfers = transfers.map((transfer) => {
           const fromWallet = transfer.fromAddress.toLowerCase();
