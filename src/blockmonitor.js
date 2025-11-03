@@ -334,10 +334,34 @@ class BlockchainScanner {
           `\n📋 Block ${startBlock} - ${endBlock} Found ${transfers.length} relevant transfer(s):`
         );
         
+        // Get user wallets (excluding hot wallet) for direction logic
+        const userWallets = [];
+        if (!CONFIG.BLOCKCHAIN_MONITOR_TEST) {
+          const walletQuery = `
+            SELECT DISTINCT LOWER(address) as address 
+            FROM wallets 
+            WHERE status = 'ACTIVE' AND LOWER(address) != $1
+            LIMIT 1000
+          `;
+          const result = await client.query(walletQuery, [this.hotWalletAddress]);
+          userWallets.push(...result.rows.map(row => row.address));
+        }
+        
         relevantTransfers = transfers.map((transfer) => {
           const fromWallet = transfer.fromAddress.toLowerCase();
-          const direction =
-            fromWallet === this.hotWalletAddress ? "outgoing" : "incoming";
+          const toWallet = transfer.toAddress.toLowerCase();
+          
+          let direction;
+          if (fromWallet === this.hotWalletAddress) {
+            // Hot wallet is sending - this is outgoing (withdrawal)
+            direction = "outgoing";
+          } else if (userWallets.includes(toWallet) || toWallet === this.hotWalletAddress) {
+            // Transfer to user wallet or hot wallet - this is incoming (deposit)
+            direction = "incoming";
+          } else {
+            // Transfer between user wallets or other scenarios - mark as unknown
+            direction = "unknown";
+          }
           
           return {
             ...transfer,
