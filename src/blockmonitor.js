@@ -404,8 +404,8 @@ class BlockchainScanner {
         
         
         relevantTransfers = transfers.map((transfer) => {
-          const fromWallet = transfer.fromAddress.toLowerCase();
-          const toWallet = transfer.toAddress.toLowerCase();
+          const fromWallet = transfer.fromAddress;
+          const toWallet = transfer.toAddress;
           
           console.log(`DEBUG: Transfer ${transfer.transactionHash.slice(0, 10)}...`);
           console.log(`  From: ${transfer.fromAddress} -> ${fromWallet}`);
