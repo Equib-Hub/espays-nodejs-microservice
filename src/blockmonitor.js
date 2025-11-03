@@ -371,11 +371,11 @@ class BlockchainScanner {
           monitoredAddresses = [this.hotWalletAddress];
           console.log(`Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`);
         } else {
-          const networkId = await getNetworkIdByAddress(CONFIG.WATCHED_ADDRESS);
-          const compatibilityId = await getCompatibilityIdByNetworkId(networkId);
-          console.log(`Compatibility ID: ${compatibilityId}`);
+          const networkIdStoreData = await getNetworkIdByAddress(CONFIG.WATCHED_ADDRESS);
+          const compatibilityIdStoreData = await getCompatibilityIdByNetworkId(networkIdStoreData);
+          console.log(`Compatibility ID: ${compatibilityIdStoreData}`);
           
-          if (!compatibilityId) {
+          if (!compatibilityIdStoreData) {
             console.warn('⚠️  WARNING: No compatibility ID found for the network ID');
             return [];
           }
@@ -390,7 +390,7 @@ class BlockchainScanner {
           `;
 
           console.log(`StoreBlockData: Executing wallet query: ${walletQuery}`);
-          const result = await client.query(walletQuery, [compatibilityId]);
+          const result = await client.query(walletQuery, [compatibilityIdStoreData]);
           console.log(`StoreBlockData: Query returned ${result.rows.length} rows`);
           
           if (result.rows.length === 0) {
