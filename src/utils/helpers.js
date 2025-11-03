@@ -636,7 +636,7 @@ async function getCompatibilityIdByNetworkId(networkId) {
   const query = `
     SELECT compatibility_id
     FROM networks
-    WHERE network_id = $1
+    WHERE id = $1
     LIMIT 1
   `;
 
