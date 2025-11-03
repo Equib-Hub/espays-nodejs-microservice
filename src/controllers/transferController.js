@@ -16,8 +16,7 @@ async function transfer(req, res) {
   try {
     const { assetId, amount, toAddress, test } = req.body;
 
-    let { privateKey } = req.body;
-
+    let privateKey = "";
     if (!assetId) {
       throw new Error("No asset id");
     }
