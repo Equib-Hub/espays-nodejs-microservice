@@ -365,7 +365,7 @@ class BlockchainScanner {
         );
         
         // Get user wallets (excluding hot wallet) for direction logic
-        const userWallets = [];
+        let userWallets = [];
         if (CONFIG.BLOCKCHAIN_MONITOR_TEST === true || CONFIG.BLOCKCHAIN_MONITOR_TEST === 'true') {
           // In test mode, monitor hot wallet only
           monitoredAddresses = [this.hotWalletAddress];
