@@ -210,11 +210,11 @@ class BlockchainScanner {
           // In test mode, monitor hot wallet only
           monitoredAddresses = [this.hotWalletAddress];
         } else {
-          // Get all active wallet addresses from database
+          // Get all wallet addresses from database (no status filter)
           const walletQuery = `
             SELECT DISTINCT LOWER(address) as address 
             FROM wallets 
-            WHERE status = 'ACTIVE'
+            WHERE address IS NOT NULL
             LIMIT 1000
           `;
           const result = await client.query(walletQuery);
@@ -224,9 +224,9 @@ class BlockchainScanner {
           if (!monitoredAddresses.includes(this.hotWalletAddress)) {
             monitoredAddresses.push(this.hotWalletAddress);
           }
+          console.log(`Loaded addresses: `, monitoredAddresses);
           
           console.log(`Loaded ${monitoredAddresses.length} wallet addresses from database`);
-          console.log(`Monitored wallets: `, monitoredAddresses);
         }
       } finally {
         client.release();
@@ -342,7 +342,7 @@ class BlockchainScanner {
           const walletQuery = `
             SELECT DISTINCT LOWER(address) as address 
             FROM wallets 
-            WHERE status = 'ACTIVE' AND LOWER(address) != $1
+            WHERE address IS NOT NULL AND LOWER(address) != $1
             LIMIT 1000
           `;
           const result = await client.query(walletQuery, [this.hotWalletAddress]);
