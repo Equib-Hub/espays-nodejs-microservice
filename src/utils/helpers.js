@@ -334,20 +334,14 @@ async function getWalletsByUserId(userId) {
         WHERE user_id = ANY($1)
         ORDER BY user_id, created_at DESC
       `;
-      console.log("Fetching wallets for user IDs:", userId); // --- IGNORE ---
-      console.log("Executing query:", query);
       
       const result = await pool.query(query, [userId]);
 
-      console.log("Query result:", result.rows); // --- NEW LOGGING ---
       // Group wallets by user_id
       const walletsByUser = {};
       userId.forEach((id) => {
         walletsByUser[id] = result.rows.filter((row) => row.user_id === id);
       });
-
-      console.log("Wallets grouped by user ID:", walletsByUser); // --- NEW LOGGING ---
-      console.log("Returning wallet data for user IDs:", userId); // --- NEW LOGGING ---
 
       return {
         found: result.rows.length > 0,
