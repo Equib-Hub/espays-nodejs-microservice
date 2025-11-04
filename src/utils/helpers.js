@@ -554,6 +554,7 @@ async function getHotWalletAddress(assetId) {
     }
 
     return result.rows[0].address;
+    console.log("HOT wallet address found:", result.rows[0].address);
   } catch (error) {
     console.error("Error getting HOT wallet address:", error.message);
     throw error;
