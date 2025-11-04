@@ -99,7 +99,7 @@ class BlockchainScanner {
 
     if (!hotWallet) throw new Error("No hot wallet address");
 
-    this.hotWalletAddress = hotWallet.toLowerCase();
+    this.hotWalletAddress = hotWallet;
     // Test database connection
     try {
       const client = await pool.connect();
