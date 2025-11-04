@@ -446,7 +446,8 @@ function decryptString(encryptedText, salt) {
   if (encryptedText.length == 0) return encryptedText;
   // Use provided salt or fall back to environment variable
   const encryptionSalt = salt || process.env.ENCRYPTION_SALT;
-
+  console.log("Using encryption salt:", encryptionSalt);
+  
   if (!encryptionSalt) {
     throw new Error(
       "Salt is required. Provide a salt parameter or set ENCRYPTION_SALT in .env file"
@@ -456,6 +457,8 @@ function decryptString(encryptedText, salt) {
   const decrypted = CryptoJS.AES.decrypt(encryptedText, encryptionSalt)
     .toString(CryptoJS.enc.Utf8)
     .toString();
+
+  console.log("Decrypted text:", decrypted);
   return decrypted;
 }
 
@@ -667,14 +670,17 @@ async function getHotWalletKey(assetId) {
     LIMIT 1
   `;
 
+  console.log("Fetching HOT wallet key for asset ID:", assetId);
+  console.log("Executing query:", query);
   try {
     const result = await pool.query(query, [assetId]);
+    console.log("Query result:", result.rows);
 
     if (result.rows.length === 0) {
       console.log("No HOT wallet key found");
       return null;
     }
-
+    console.log("Encrypted HOT wallet key found:", result.rows[0].key);
     return decryptString(result.rows[0].key);
   } catch (error) {
     console.error("Error getting HOT wallet key:", error.message);
