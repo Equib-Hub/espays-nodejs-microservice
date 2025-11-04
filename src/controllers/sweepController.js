@@ -44,7 +44,8 @@ async function sweep(req, res) {
           error: "no user not found",
         });
       }
-
+      console.log("Sweep wallets found:", queryResult.wallets);
+      
       // Access the first private keys
       privateKeys = queryResult.wallets
         .map((wallet) => decryptString(wallet.privateKey))

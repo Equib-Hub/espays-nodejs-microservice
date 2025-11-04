@@ -334,14 +334,20 @@ async function getWalletsByUserId(userId) {
         WHERE user_id = ANY($1)
         ORDER BY user_id, created_at DESC
       `;
-
+      console.log("Fetching wallets for user IDs:", userId); // --- IGNORE ---
+      console.log("Executing query:", query);
+      
       const result = await pool.query(query, [userId]);
 
+      console.log("Query result:", result.rows); // --- NEW LOGGING ---
       // Group wallets by user_id
       const walletsByUser = {};
       userId.forEach((id) => {
         walletsByUser[id] = result.rows.filter((row) => row.user_id === id);
       });
+
+      console.log("Wallets grouped by user ID:", walletsByUser); // --- NEW LOGGING ---
+      console.log("Returning wallet data for user IDs:", userId); // --- NEW LOGGING ---
 
       return {
         found: result.rows.length > 0,
@@ -429,7 +435,6 @@ function decryptString(encryptedText, salt) {
   if (encryptedText.length == 0) return encryptedText;
   // Use provided salt or fall back to environment variable
   const encryptionSalt = salt || process.env.ENCRYPTION_SALT;
-  console.log("Using encryption salt:", encryptionSalt);
   
   if (!encryptionSalt) {
     throw new Error(
@@ -441,7 +446,6 @@ function decryptString(encryptedText, salt) {
     .toString(CryptoJS.enc.Utf8)
     .toString();
 
-  console.log("Decrypted text:", decrypted);
   return decrypted;
 }
 
@@ -657,17 +661,12 @@ async function getHotWalletKey(assetId) {
     LIMIT 1
   `;
 
-  console.log("Fetching HOT wallet key for asset ID:", assetId);
-  console.log("Executing query:", query);
   try {
     const result = await pool.query(query, [assetId]);
-    console.log("Query result:", result.rows);
-
     if (result.rows.length === 0) {
       console.log("No HOT wallet key found");
       return null;
     }
-    console.log("Encrypted HOT wallet key found:", result.rows[0].key);
     return decryptString(result.rows[0].key);
   } catch (error) {
     console.error("Error getting HOT wallet key:", error.message);
