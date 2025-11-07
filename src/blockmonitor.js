@@ -323,6 +323,10 @@ class BlockchainScanner {
           (addr) => "0x" + addr.slice(2).padStart(64, "0")
         );
 
+        // const paddedAddresses = ethers.zeroPadValue(
+        //   "0xB4C587f855f3790ce5Fc1C5381Fd2ef7D4114AbE".toLowerCase(),
+        //   32
+        // );
         // Query 1: Get transfers FROM our wallets (withdrawals)
         const logsFrom = await this.provider.getLogs({
           fromBlock: fromBlock,
@@ -396,13 +400,13 @@ class BlockchainScanner {
               "0x" + log.topics[1].slice(26)
             );
             const toAddress = ethers.getAddress("0x" + log.topics[2].slice(26));
-            let amount 
+            let amount;
 
             if (log.topics[0] == ERC20_TRANSFER_TOPIC2) {
-              amount = ethers.getBigInt(log.data).toString();
-            } else {
               const firstUint256 = "0x" + cleanData.slice(0, 64);
               amount = BigInt(firstUint256).toString();
+            } else {
+              amount = ethers.getBigInt(log.data).toString();
             }
 
             // Get transaction to get the value (ETH sent)
@@ -431,7 +435,7 @@ class BlockchainScanner {
       console.log(
         `Found ${transfers.length} ERC20 transfers involving monitored wallets in blocks ${fromBlock}-${toBlock}`
       );
-      console.log(`Sample transfers length:`, transfers.length);
+      console.log(`Sample transfer:`, transfers);
       return transfers;
     } catch (error) {
       console.error(
