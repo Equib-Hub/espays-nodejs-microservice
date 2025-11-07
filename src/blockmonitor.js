@@ -4,7 +4,14 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const { Pool } = require("pg");
-const { getHotWalletAddress, getAssetIdByAddress, getNetworkIdByAddress, getCompatibilityIdByNetworkId } = require("./utils/helpers");
+const {
+  getHotWalletAddress,
+  getAssetIdByAddress,
+  getNetworkIdByAddress,
+  getCompatibilityIdByNetworkId,
+} = require("./utils/helpers");
+
+const MOCK_ESPEES_TOKEN_ADDRESS = "0xCfB84f01B9494827bF5c273B978e9938D199C0c6";
 
 // Database connection pool
 
@@ -67,18 +74,24 @@ initializeDatabase()
 const CONFIG = {
   RPC_URL: process.env.TORONET_RPC || "https://toronet.org/rpc/",
   STARTING_BLOCK: parseInt(process.env.STARTING_BLOCK) || 24541889,
-  WATCHED_ADDRESS: process.env.WATCHED_ADDRESS?.toLowerCase() || (() => {
-    throw new Error('WATCHED_ADDRESS is required in .env file');
-  })(),
+  WATCHED_ADDRESS:
+    process.env.WATCHED_ADDRESS?.toLowerCase() ||
+    (() => {
+      throw new Error("WATCHED_ADDRESS is required in .env file");
+    })(),
   SCAN_BATCH_SIZE: parseInt(process.env.SCAN_BATCH_SIZE) || 300,
   POLLING_INTERVAL: parseInt(process.env.POLLING_INTERVAL) || 30000, // ms
   WEBHOOK_URL: process.env.WEBHOOK_URL,
   BLOCKCHAIN_MONITOR_TEST: process.env.BLOCKCHAIN_MONITOR_TEST,
+  MOCK_ESPEES_TOKEN_ADDRESS:
+    process.env.MOCK_ESPEES_TOKEN_ADDRESS || MOCK_ESPEES_TOKEN_ADDRESS,
 };
 
 // ERC20 Transfer event signature
 const ERC20_TRANSFER_TOPIC =
   "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const ERC20_TRANSFER_TOPIC2 =
+  "0x9ed053bb818ff08b8353cd46f78db1f0799f31c9e4458fdb425c10eccd2efc44";
 
 class BlockchainScanner {
   constructor() {
@@ -89,13 +102,13 @@ class BlockchainScanner {
   async initialize() {
     console.log("Initializing blockchain scanner...");
     console.log(`Watching address: ${CONFIG.WATCHED_ADDRESS}`);
-    let assetId = await getAssetIdByAddress(CONFIG.WATCHED_ADDRESS);
-    
-    if (!assetId) {
-      throw new Error("No asset id for watched address");
-    }
+    // let assetId = await getAssetIdByAddress(CONFIG.WATCHED_ADDRESS);
 
-    let hotWallet = await getHotWalletAddress(assetId);
+    // if (!assetId) {
+    //   throw new Error("No asset id for watched address");
+    // }
+
+    let hotWallet = "0x241178EcC063f6DB8626c471Ee61A63644BF95A3"; //await getHotWalletAddress(assetId);
 
     if (!hotWallet) throw new Error("No hot wallet address");
 
@@ -192,7 +205,7 @@ class BlockchainScanner {
 
   async processBlock(blockNumber) {
     console.log(`Processing blocks ${blockNumber}...`);
-    
+
     // This will be filled with fromBlock and toBlock for batch processing
     return [];
   }
@@ -204,20 +217,32 @@ class BlockchainScanner {
       // Get all wallet addresses from database that we need to monitor
       const client = await pool.connect();
       let monitoredAddresses = [];
-      console.log('Config.BLOCKCHAIN_MONITOR_TEST:', CONFIG.BLOCKCHAIN_MONITOR_TEST);
+      console.log(
+        "Config.BLOCKCHAIN_MONITOR_TEST:",
+        CONFIG.BLOCKCHAIN_MONITOR_TEST
+      );
       try {
-        if (CONFIG.BLOCKCHAIN_MONITOR_TEST === true || CONFIG.BLOCKCHAIN_MONITOR_TEST === 'true') {
+        if (
+          CONFIG.BLOCKCHAIN_MONITOR_TEST === true ||
+          CONFIG.BLOCKCHAIN_MONITOR_TEST === "true"
+        ) {
           // In test mode, monitor hot wallet only
           monitoredAddresses = [this.hotWalletAddress];
-          console.log(`Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`);
+          console.log(
+            `Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`
+          );
         } else {
-          console.log('Live mode about querying from db');
+          console.log("Live mode about querying from db");
           const networkId = await getNetworkIdByAddress(CONFIG.WATCHED_ADDRESS);
-          const compatibilityId = await getCompatibilityIdByNetworkId(networkId);
+          const compatibilityId = await getCompatibilityIdByNetworkId(
+            networkId
+          );
           console.log(`Compatibility ID: ${compatibilityId}`);
-          
+
           if (!compatibilityId) {
-            console.warn('⚠️  WARNING: No compatibility ID found for the network ID');
+            console.warn(
+              "⚠️  WARNING: No compatibility ID found for the network ID"
+            );
             return [];
           }
 
@@ -229,59 +254,73 @@ class BlockchainScanner {
             AND compatibility_id = $1
             LIMIT 1000
           `;
-          
+
           console.log(`Executing wallet query: ${walletQuery}`);
           const result = await client.query(walletQuery, [compatibilityId]);
           console.log(`Query returned ${result.rows.length} rows`);
-          
+
           if (result.rows.length === 0) {
-            console.warn('⚠️  WARNING: No wallets found in database!');
-            console.warn('⚠️  Check if wallets table has data or if column name is correct');
+            console.warn("⚠️  WARNING: No wallets found in database!");
+            console.warn(
+              "⚠️  Check if wallets table has data or if column name is correct"
+            );
           } else {
-            console.log(`Sample of first 3 addresses:`, result.rows.slice(0, 3));
+            console.log(
+              `Sample of first 3 addresses:`,
+              result.rows.slice(0, 3)
+            );
           }
-          
-          monitoredAddresses = result.rows.map(row => row.address);
-          
+
+          monitoredAddresses = result.rows.map((row) => row.address);
+
           // Add hot wallet if not in list
           if (!monitoredAddresses.includes(this.hotWalletAddress)) {
             monitoredAddresses.push(this.hotWalletAddress);
-            console.log(`Added hot wallet to monitored list: ${this.hotWalletAddress}`);
+            console.log(
+              `Added hot wallet to monitored list: ${this.hotWalletAddress}`
+            );
           }
           console.log(`Loaded addresses: `, monitoredAddresses);
-          
-          console.log(`Loaded ${monitoredAddresses.length} wallet addresses from database`);
+
+          console.log(
+            `Loaded ${monitoredAddresses.length} wallet addresses from database`
+          );
         }
       } catch (queryError) {
-        console.error('❌ Database query error:', queryError.message);
-        console.error('Full error:', queryError);
+        console.error("❌ Database query error:", queryError.message);
+        console.error("Full error:", queryError);
         throw queryError;
       } finally {
         client.release();
       }
 
       if (monitoredAddresses.length === 0) {
-        console.log('No addresses to monitor');
+        console.log("No addresses to monitor");
         return [];
       }
 
-      console.log(this.hotWalletAddress ? `Hot wallet address: ${this.hotWalletAddress}` : 'No hot wallet configured');
+      console.log(
+        this.hotWalletAddress
+          ? `Hot wallet address: ${this.hotWalletAddress}`
+          : "No hot wallet configured"
+      );
       console.log(`Monitored wallets: `, monitoredAddresses);
-      
+
       console.log(`Monitoring ${monitoredAddresses.length} wallet addresses`);
 
       // Use eth_getLogs to get Transfer events involving our wallets
       // Transfer event signature: Transfer(address indexed from, address indexed to, uint256 value)
       const transfers = [];
-      
+
       // We need to query in batches because too many addresses can exceed RPC limits
       const BATCH_SIZE = 100;
-      for (let i = 0; i < monitoredAddresses.length; i += BATCH_SIZE) {
+      for (let i = 0; i < 2; i += BATCH_SIZE) {
+        //monitoredAddresses.length
         const addressBatch = monitoredAddresses.slice(i, i + BATCH_SIZE);
-        
+
         // Pad addresses to 32 bytes for topic filtering
-        const paddedAddresses = addressBatch.map(addr => 
-          '0x' + addr.slice(2).padStart(64, '0')
+        const paddedAddresses = addressBatch.map(
+          (addr) => "0x" + addr.slice(2).padStart(64, "0")
         );
 
         // Query 1: Get transfers FROM our wallets (withdrawals)
@@ -292,8 +331,8 @@ class BlockchainScanner {
           topics: [
             ERC20_TRANSFER_TOPIC, // Transfer event
             paddedAddresses, // from addresses (our wallets)
-            null // to any address
-          ]
+            null, // to any address
+          ],
         });
 
         // Query 2: Get transfers TO our wallets (deposits)
@@ -304,26 +343,75 @@ class BlockchainScanner {
           topics: [
             ERC20_TRANSFER_TOPIC, // Transfer event
             null, // from any address
-            paddedAddresses // to addresses (our wallets)
-          ]
+            paddedAddresses, // to addresses (our wallets)paddedAddresses
+          ],
+        });
+
+        const logsFrom1 = await this.provider.getLogs({
+          fromBlock: fromBlock,
+          toBlock: toBlock,
+          address: CONFIG.MOCK_ESPEES_TOKEN_ADDRESS, // The token contract
+          topics: [
+            ERC20_TRANSFER_TOPIC2, // Transfer event
+            paddedAddresses, //paddedAddresses, // from addresses (our wallets) ethers.zeroPadValue("0xFromAddress".toLowerCase(), 32)
+            null, // to any address
+            // null, // unknown uint256
+          ],
+        });
+
+        // Query 2: Get transfers TO our wallets (deposits)
+        const logsTo1 = await this.provider.getLogs({
+          fromBlock: fromBlock,
+          toBlock: toBlock,
+          address: CONFIG.MOCK_ESPEES_TOKEN_ADDRESS, // The token contract
+          topics: [
+            ERC20_TRANSFER_TOPIC2, // Transfer event
+            null, // from any address
+            paddedAddresses, //paddedAddresses, // to addresses (our wallets)paddedAddresses
+            // null, // unknown uint256
+          ],
         });
 
         // Combine and deduplicate logs
-        const allLogs = [...logsFrom, ...logsTo];
+        const allLogs = [...logsFrom, ...logsTo, ...logsFrom1, ...logsTo1];
         const uniqueLogs = Array.from(
-          new Map(allLogs.map(log => [log.transactionHash + log.logIndex, log])).values()
+          new Map(
+            allLogs.map((log) => [log.transactionHash + log.logIndex, log])
+          ).values()
         );
 
+        console.log(`logsFrom.length:`, logsFrom.length);
+        console.log(`logsTo.length:`, logsTo.length);
+        console.log(`logsFrom1.length:`, logsFrom1.length);
+        console.log(`logsTo1.length:`, logsTo1.length); 
+        console.log("LOgs");
         // Process each log
         for (const log of uniqueLogs) {
           try {
-            const fromAddress = ethers.getAddress('0x' + log.topics[1].slice(26));
-            const toAddress = ethers.getAddress('0x' + log.topics[2].slice(26));
-            const amount = ethers.getBigInt(log.data).toString();
+            const cleanData = log.data.startsWith("0x")
+              ? log.data.slice(2)
+              : log.data;
+
+            const fromAddress = ethers.getAddress(
+              "0x" + log.topics[1].slice(26)
+            );
+            const toAddress = ethers.getAddress("0x" + log.topics[2].slice(26));
+            let amount = ethers.getBigInt(log.data).toString();
+
+            switch (log.topics[0]) {
+              case ERC20_TRANSFER_TOPIC2:
+                const firstUint256 = "0x" + cleanData.slice(0, 64);
+                // const secondUint256 = "0x" + cleanData.slice(64, 128);
+                amount = BigInt(firstUint256).toString();
+                break;
+
+              default:
+                break;
+            }
 
             // Get transaction to get the value (ETH sent)
             const tx = await this.provider.getTransaction(log.transactionHash);
-            const value = tx ? tx.value.toString() : '0';
+            const value = tx ? tx.value.toString() : "0";
 
             transfers.push({
               blockNumber: log.blockNumber,
@@ -347,9 +435,13 @@ class BlockchainScanner {
       console.log(
         `Found ${transfers.length} ERC20 transfers involving monitored wallets in blocks ${fromBlock}-${toBlock}`
       );
+      console.log(`Sample transfers length:`, transfers.length);
       return transfers;
     } catch (error) {
-      console.error(`Error processing block range ${fromBlock}-${toBlock}:`, error.message);
+      console.error(
+        `Error processing block range ${fromBlock}-${toBlock}:`,
+        error.message
+      );
       throw error;
     }
   }
@@ -363,20 +455,30 @@ class BlockchainScanner {
         console.log(
           `\n📋 Block ${startBlock} - ${endBlock} Found ${transfers.length} relevant transfer(s):`
         );
-        
+
         // Get user wallets (excluding hot wallet) for direction logic
         let userWallets = [];
-        if (CONFIG.BLOCKCHAIN_MONITOR_TEST === true || CONFIG.BLOCKCHAIN_MONITOR_TEST === 'true') {
+        if (
+          CONFIG.BLOCKCHAIN_MONITOR_TEST === true ||
+          CONFIG.BLOCKCHAIN_MONITOR_TEST === "true"
+        ) {
           // In test mode, monitor hot wallet only
-          monitoredAddresses = [this.hotWalletAddress];
-          console.log(`Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`);
+          console.log(
+            `Test mode: Monitoring only hot wallet address: ${this.hotWalletAddress}`
+          );
         } else {
-          const networkIdStoreData = await getNetworkIdByAddress(CONFIG.WATCHED_ADDRESS);
-          const compatibilityIdStoreData = await getCompatibilityIdByNetworkId(networkIdStoreData);
+          const networkIdStoreData = await getNetworkIdByAddress(
+            CONFIG.WATCHED_ADDRESS
+          );
+          const compatibilityIdStoreData = await getCompatibilityIdByNetworkId(
+            networkIdStoreData
+          );
           console.log(`Compatibility ID: ${compatibilityIdStoreData}`);
-          
+
           if (!compatibilityIdStoreData) {
-            console.warn('⚠️  WARNING: No compatibility ID found for the network ID');
+            console.warn(
+              "⚠️  WARNING: No compatibility ID found for the network ID"
+            );
             return [];
           }
 
@@ -390,37 +492,54 @@ class BlockchainScanner {
           `;
 
           console.log(`StoreBlockData: Executing wallet query: ${walletQuery}`);
-          const result = await client.query(walletQuery, [compatibilityIdStoreData]);
-          console.log(`StoreBlockData: Query returned ${result.rows.length} rows`);
-          
+          const result = await client.query(walletQuery, [
+            compatibilityIdStoreData,
+          ]);
+          console.log(
+            `StoreBlockData: Query returned ${result.rows.length} rows`
+          );
+
           if (result.rows.length === 0) {
-            console.warn('StoreBlockData: ⚠️  WARNING: No wallets found in database!');
-            console.warn('StoreBlockData: ⚠️  Check if wallets table has data or if column name is correct');
+            console.warn(
+              "StoreBlockData: ⚠️  WARNING: No wallets found in database!"
+            );
+            console.warn(
+              "StoreBlockData: ⚠️  Check if wallets table has data or if column name is correct"
+            );
           } else {
-            console.log(`StoreBlockData: Sample of first 3 addresses:`, result.rows.slice(0, 3));
+            console.log(
+              `StoreBlockData: Sample of first 3 addresses:`,
+              result.rows.slice(0, 3)
+            );
           }
-          userWallets = result.rows.map(row => row.address);
+          userWallets = result.rows.map((row) => row.address);
         }
-        
-        
+
         relevantTransfers = transfers.map((transfer) => {
           const fromWallet = transfer.fromAddress;
           const toWallet = transfer.toAddress;
-          
-          console.log(`DEBUG: Transfer ${transfer.transactionHash.slice(0, 10)}...`);
+
+          console.log(
+            `DEBUG: Transfer ${transfer.transactionHash.slice(0, 10)}...`
+          );
           console.log(`  From: ${transfer.fromAddress} -> ${fromWallet}`);
           console.log(`  To: ${transfer.toAddress} -> ${toWallet}`);
           console.log(`  Hot wallet: ${this.hotWalletAddress}`);
           console.log(`  User wallet count: `, userWallets);
           console.log(`  User wallets count: ${userWallets.length}`);
-          console.log(`  Is toWallet in userWallets: ${userWallets.includes(toWallet)}`);
-          
+          console.log(
+            `  Is toWallet in userWallets: ${userWallets.includes(toWallet)}`
+          );
+
           let direction;
           if (fromWallet === this.hotWalletAddress) {
             // Hot wallet is sending - this is outgoing (withdrawal)
             direction = "outgoing";
             console.log(`  -> Direction: OUTGOING (hot wallet sending)`);
-          } else if (userWallets.includes(toWallet) || toWallet === this.hotWalletAddress) {
+          } else if (
+            userWallets.includes(toWallet) ||
+            toWallet === this.hotWalletAddress
+          ) {
             // Transfer to user wallet or hot wallet - this is incoming (deposit)
             direction = "incoming";
             console.log(`  -> Direction: INCOMING (to monitored wallet)`);
@@ -429,18 +548,30 @@ class BlockchainScanner {
             direction = "unknown";
             console.log(`  -> Direction: UNKNOWN (not to monitored wallet)`);
           }
-          
+
           return {
             ...transfer,
-            direction
+            direction,
           };
         });
 
         // Log sample of transfers (not all to avoid spam)
         const sampleSize = Math.min(5, relevantTransfers.length);
-        console.log(`Showing ${sampleSize} of ${relevantTransfers.length} transfers:`);
+        console.log(
+          `Showing ${sampleSize} of ${relevantTransfers.length} transfers:`
+        );
         relevantTransfers.slice(0, sampleSize).forEach((transfer, index) => {
-          console.log(`  ${index + 1}. ${transfer.direction.toUpperCase()}: ${transfer.fromAddress.slice(0, 10)}... -> ${transfer.toAddress.slice(0, 10)}... (${ethers.formatEther(transfer.amount)} tokens)`);
+          console.log(
+            `  ${
+              index + 1
+            }. ${transfer.direction.toUpperCase()}: ${transfer.fromAddress.slice(
+              0,
+              10
+            )}... -> ${transfer.toAddress.slice(
+              0,
+              10
+            )}... (${ethers.formatEther(transfer.amount)} tokens)`
+          );
         });
 
         // Only send webhook if there are transfers
@@ -499,7 +630,10 @@ class BlockchainScanner {
         return;
       }
 
-      let currentBlock = lastProcessedBlock + 1;
+      // fromBlock = 24594200;
+
+      // toBlock = fromBlock + 100;
+      let currentBlock = lastProcessedBlock + 1;// 24600980; //24594200; // 24600988 //
       const endBlock = Math.min(
         currentBlock + CONFIG.SCAN_BATCH_SIZE - 1,
         latestBlock
