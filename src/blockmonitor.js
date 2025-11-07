@@ -420,7 +420,8 @@ class BlockchainScanner {
               toAddress,
               amount,
               value,
-              tokenAddress: log.address.toLowerCase(),
+              tokenAddress:
+                "0x241178EcC063f6DB8626c471Ee61A63644BF95A3".toLowerCase(), //log.address.toLowerCase(),
               logIndex: log.index,
             });
           } catch (decodeError) {
