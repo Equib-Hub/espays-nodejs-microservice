@@ -383,7 +383,7 @@ class BlockchainScanner {
         console.log(`logsFrom.length:`, logsFrom.length);
         console.log(`logsTo.length:`, logsTo.length);
         console.log(`logsFrom1.length:`, logsFrom1.length);
-        console.log(`logsTo1.length:`, logsTo1.length); 
+        console.log(`logsTo1.length:`, logsTo1.length);
         console.log("LOgs");
         // Process each log
         for (const log of uniqueLogs) {
@@ -396,17 +396,13 @@ class BlockchainScanner {
               "0x" + log.topics[1].slice(26)
             );
             const toAddress = ethers.getAddress("0x" + log.topics[2].slice(26));
-            let amount = ethers.getBigInt(log.data).toString();
+            let amount 
 
-            switch (log.topics[0]) {
-              case ERC20_TRANSFER_TOPIC2:
-                const firstUint256 = "0x" + cleanData.slice(0, 64);
-                // const secondUint256 = "0x" + cleanData.slice(64, 128);
-                amount = BigInt(firstUint256).toString();
-                break;
-
-              default:
-                break;
+            if (log.topics[0] == ERC20_TRANSFER_TOPIC2) {
+              amount = ethers.getBigInt(log.data).toString();
+            } else {
+              const firstUint256 = "0x" + cleanData.slice(0, 64);
+              amount = BigInt(firstUint256).toString();
             }
 
             // Get transaction to get the value (ETH sent)
@@ -633,7 +629,7 @@ class BlockchainScanner {
       // fromBlock = 24594200;
 
       // toBlock = fromBlock + 100;
-      let currentBlock = lastProcessedBlock + 1;// 24600980; //24594200; // 24600988 //
+      let currentBlock = lastProcessedBlock + 1; // 24600980; //24594200; // 24600988 //
       const endBlock = Math.min(
         currentBlock + CONFIG.SCAN_BATCH_SIZE - 1,
         latestBlock
