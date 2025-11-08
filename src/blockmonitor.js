@@ -102,11 +102,11 @@ class BlockchainScanner {
   async initialize() {
     console.log("Initializing blockchain scanner...");
     console.log(`Watching address: ${CONFIG.WATCHED_ADDRESS}`);
-    // let assetId = await getAssetIdByAddress(CONFIG.WATCHED_ADDRESS);
+    let assetId = await getAssetIdByAddress(CONFIG.WATCHED_ADDRESS);
 
-    // if (!assetId) {
-    //   throw new Error("No asset id for watched address");
-    // }
+    if (!assetId) {
+      throw new Error("No asset id for watched address");
+    }
 
     let hotWallet = await getHotWalletAddress(assetId);
 
