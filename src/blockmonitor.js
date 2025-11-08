@@ -108,7 +108,7 @@ class BlockchainScanner {
     //   throw new Error("No asset id for watched address");
     // }
 
-    let hotWallet = "0x241178EcC063f6DB8626c471Ee61A63644BF95A3"; //await getHotWalletAddress(assetId);
+    let hotWallet = await getHotWalletAddress(assetId);
 
     if (!hotWallet) throw new Error("No hot wallet address");
 
